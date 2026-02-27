@@ -88,11 +88,11 @@ export class DocmostClient {
       });
 
       const data = response.data;
-      const items = data.data?.items || data.items || [];
-      const meta = data.data?.meta || data.meta;
+      const items = data.data?.items ?? data.items ?? [];
+      const meta = data.data?.meta ?? data.meta;
 
       allItems = allItems.concat(items);
-      hasNextPage = meta?.hasNextPage || false;
+      hasNextPage = meta?.hasNextPage ?? false;
       page++;
     }
 
@@ -148,7 +148,9 @@ export class DocmostClient {
     try {
       subpages = await this.listSidebarPages(resultData.spaceId, pageId);
     } catch (error) {
-      console.warn("Failed to fetch subpages:", error);
+      if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
+        throw error;
+      }
     }
 
     if (content && content.includes("{{SUBPAGES}}")) {
@@ -156,9 +158,9 @@ export class DocmostClient {
         const list = subpages
           .map((p: any) => `- [${p.title}](page:${p.id})`)
           .join("\n");
-        content = content.replace("{{SUBPAGES}}", `### Subpages\n${list}`);
+        content = content.replaceAll("{{SUBPAGES}}", `### Subpages\n${list}`);
       } else {
-        content = content.replace("{{SUBPAGES}}", "");
+        content = content.replaceAll("{{SUBPAGES}}", "");
       }
     }
 
@@ -179,8 +181,11 @@ export class DocmostClient {
     if (parentPageId) {
       try {
         await this.getPage(parentPageId);
-      } catch {
-        throw new Error(`Parent page with ID ${parentPageId} not found.`);
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 404) {
+          throw new Error(`Parent page with ID ${parentPageId} not found.`);
+        }
+        throw error;
       }
     }
 
@@ -222,11 +227,11 @@ export class DocmostClient {
       collabToken = await getCollabToken(this.baseURL, this.token!);
       await updatePageContentRealtime(pageId, content, collabToken, this.baseURL);
     } catch (error: any) {
-      const tokenPreview = collabToken
-        ? `${collabToken.substring(0, 15)}...`
-        : "null";
+      if (axios.isAxiosError(error)) {
+        throw error;
+      }
       throw new Error(
-        `Failed to update page content: ${error.message} (Token: ${tokenPreview})`,
+        `Failed to update page content: ${error.message}`,
       );
     }
 
@@ -282,17 +287,19 @@ export class DocmostClient {
 
   async deletePages(pageIds: string[]) {
     await this.ensureAuthenticated();
-    const promises = pageIds.map((id) =>
-      this.client
-        .post("/pages/delete", { pageId: id })
-        .then(() => ({ id, success: true }))
-        .catch((error: any) => ({
-          id,
-          success: false,
-          error: error.message,
-        })),
-    );
-    return Promise.all(promises);
+    const results: { id: string; success: boolean; error?: string }[] = [];
+    for (const id of pageIds) {
+      try {
+        await this.client.post("/pages/delete", { pageId: id });
+        results.push({ id, success: true });
+      } catch (error: any) {
+        if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
+          throw error;
+        }
+        results.push({ id, success: false, error: error.message });
+      }
+    }
+    return results;
   }
 
   async getPageHistory(pageId: string, cursor?: string) {

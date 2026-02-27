@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-import { readFile, readFileSync } from "fs";
-import { stdin } from "process";
-import { promisify } from "util";
+import { readFileSync } from "fs";
+import { readFile } from "fs/promises";
 import axios from "axios";
 import { Command, CommanderError } from "commander";
 import { DocmostClient, type ClientAuthOptions } from "./client.js";
@@ -54,7 +53,6 @@ const pkg = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf-8"),
 ) as { version: string };
 
-const readFileAsync = promisify(readFile);
 
 function normalizeOutputFormat(value: string | undefined): OutputFormat {
   const normalized = (value || "json").toLowerCase();
@@ -298,21 +296,29 @@ function getSafeOutput(program: Command): OutputFormat {
   const opts = program.opts<GlobalOptions>();
   try {
     return normalizeOutputFormat(opts.output);
-  } catch {
+  } catch (e) {
+    process.stderr.write(`Warning: invalid output format, defaulting to json\n`);
     return "json";
   }
 }
 
 async function readStdin(): Promise<string> {
+  if (process.stdin.isTTY) {
+    throw new CliError(
+      "VALIDATION_ERROR",
+      "No stdin data. Pipe content or use @file syntax.",
+    );
+  }
+
   return new Promise((resolve, reject) => {
     let data = "";
 
-    stdin.setEncoding("utf-8");
-    stdin.on("data", (chunk) => {
+    process.stdin.setEncoding("utf-8");
+    process.stdin.on("data", (chunk) => {
       data += chunk;
     });
-    stdin.on("end", () => resolve(data));
-    stdin.on("error", reject);
+    process.stdin.on("end", () => resolve(data));
+    process.stdin.on("error", reject);
   });
 }
 
@@ -329,7 +335,14 @@ async function resolveContentInput(content: string): Promise<string> {
         "Invalid content file syntax. Use --content @path/to/file.md",
       );
     }
-    return readFileAsync(filePath, "utf-8");
+    try {
+      return await readFile(filePath, "utf-8");
+    } catch (err: any) {
+      throw new CliError(
+        "VALIDATION_ERROR",
+        `Cannot read file '${filePath}': ${err.code || err.message}`,
+      );
+    }
   }
 
   return content;
@@ -624,7 +637,7 @@ async function main() {
     .showHelpAfterError()
     .option("-u, --api-url <url>", "Docmost API URL")
     .option("-e, --email <email>", "Docmost account email")
-    .option("-p, --password <password>", "Docmost account password")
+    .option("-p, --password <password>", "Docmost account password (prefer DOCMOST_PASSWORD env var)")
     .option("-t, --token <token>", "Docmost API auth token")
     .option("-o, --output <format>", "Output format: json | table | text", "json")
     .addHelpText(
@@ -640,6 +653,8 @@ async function main() {
         "Auth precedence:",
         "  1) --token, then DOCMOST_TOKEN",
         "  2) --email/--password, then DOCMOST_EMAIL/DOCMOST_PASSWORD",
+        "",
+        "Security: CLI flags are visible in process lists. Use env vars for credentials.",
       ].join("\n"),
     )
     .exitOverride();
