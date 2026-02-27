@@ -182,14 +182,7 @@ export class DocmostClient {
     await this.ensureAuthenticated();
 
     if (parentPageId) {
-      try {
-        await this.getPage(parentPageId);
-      } catch (error) {
-        if (axios.isAxiosError(error) && error.response?.status === 404) {
-          throw error;
-        }
-        throw error;
-      }
+      await this.getPage(parentPageId);
     }
 
     const form = new FormData();
@@ -210,6 +203,10 @@ export class DocmostClient {
       headers,
     });
     const newPageId = response.data.data.id;
+
+    if (title) {
+      await this.client.post("/pages/update", { pageId: newPageId, title });
+    }
 
     if (parentPageId) {
       await this.movePage(newPageId, parentPageId);

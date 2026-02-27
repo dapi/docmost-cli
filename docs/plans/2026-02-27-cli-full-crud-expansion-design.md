@@ -2,146 +2,222 @@
 
 ## Context
 
-Docmost CLI is an **agent-first** tool: designed primarily for AI agents and automation, not interactive human use. This means:
-- Flat command names (no subcommands) for predictable tool discovery
-- JSON output by default for machine parsing
-- No interactive prompts — all parameters via flags/env
-- Consistent naming: `<entity>-<action>` pattern
+Docmost CLI is an **agent-first** tool — designed primarily for AI agents and automation.
 
-Current state: 17 commands covering Pages (full CRUD) + read-only Spaces/Groups/Workspace.
-Docmost API surface: ~60 endpoints across 10 entities.
-
-## Goal
-
-Expand CLI from 17 to ~57 commands, covering full CRUD for all Docmost entities.
+Design principles:
+- **Flat commands** with predictable `<entity>-<action>` naming for tool discovery
+- **JSON output** by default for machine parsing
+- **No interactive prompts** — all input via flags, env vars, or stdin
+- **`--quiet`** global flag — suppress stdout, communicate via exit code only
+- **stdin support** for bulk operations (`--emails -` reads from stdin)
+- **Smart defaults** — CLI generates sensible values where API requires them (e.g. position strings)
 
 ## Naming Convention
 
-Flat with entity prefix: `<entity>-<action>`.
+All commands follow `<entity>-<action>` pattern. No exceptions.
 
-Existing commands (`list-spaces`, `list-groups`, `get-page`, etc.) remain unchanged for backward compatibility.
+Existing 17 commands are renamed to match (no backward compatibility needed).
 
-New commands follow `<entity>-<action>` pattern consistently.
+## Complete Command List
 
-## New Commands by Entity
-
-### Spaces (+8 commands)
+### Workspace (3 commands)
 
 | Command | Endpoint | Key params |
 |-|-|-|
-| `space-info` | POST `/spaces/info` | `--space-id` |
-| `space-create` | POST `/spaces/create` | `--name`, `--slug`, `--description` |
-| `space-update` | POST `/spaces/update` | `--space-id`, `--name`, `--description` |
-| `space-delete` | POST `/spaces/delete` | `--space-id` |
-| `space-export` | POST `/spaces/export` | `--space-id`, `--format` |
-| `space-members` | POST `/spaces/members` | `--space-id` |
-| `space-member-add` | POST `/spaces/members/add` | `--space-id`, `--user-id`, `--role` |
-| `space-member-remove` | POST `/spaces/members/remove` | `--space-id`, `--user-id` |
-| `space-member-role` | POST `/spaces/members/change-role` | `--space-id`, `--user-id`, `--role` |
+| `workspace-info` | POST `/workspace/info` | — |
+| `workspace-public` | POST `/workspace/public` | — |
+| `workspace-update` | POST `/workspace/update` | `--name` |
 
-### Groups (+7 commands)
+### Workspace Members (3 commands)
 
 | Command | Endpoint | Key params |
 |-|-|-|
-| `group-info` | POST `/groups/info` | `--group-id` |
-| `group-create` | POST `/groups/create` | `--name`, `--description` |
-| `group-update` | POST `/groups/update` | `--group-id`, `--name`, `--description` |
-| `group-delete` | POST `/groups/delete` | `--group-id` |
-| `group-members` | POST `/groups/members` | `--group-id` |
-| `group-member-add` | POST `/groups/members/add` | `--group-id`, `--user-id` |
-| `group-member-remove` | POST `/groups/members/remove` | `--group-id`, `--user-id` |
+| `member-list` | POST `/workspace/members` | — |
+| `member-delete` | POST `/workspace/members/delete` | `--user-id` |
+| `member-role` | POST `/workspace/members/change-role` | `--user-id`, `--role` |
 
-### Workspace & Members (+5 commands)
-
-| Command | Endpoint | Key params |
-|-|-|-|
-| `workspace-update` | POST `/workspace/update` | `--name`, `--logo` |
-| `workspace-members` | POST `/workspace/members` | — |
-| `workspace-member-delete` | POST `/workspace/members/delete` | `--user-id` |
-| `workspace-member-role` | POST `/workspace/members/change-role` | `--user-id`, `--role` |
-| `workspace-member-deactivate` | POST `/workspace/members/deactivate` | `--user-id` |
-
-### Invites (+4 commands)
+### Invites (6 commands)
 
 | Command | Endpoint | Key params |
 |-|-|-|
 | `invite-list` | POST `/workspace/invites` | — |
-| `invite-create` | POST `/workspace/invites/create` | `--email`, `--role` |
-| `invite-revoke` | POST `/workspace/invites/revoke` | `--invite-id` |
-| `invite-resend` | POST `/workspace/invites/resend` | `--invite-id` |
+| `invite-info` | POST `/workspace/invites/info` | `--invitation-id` |
+| `invite-create` | POST `/workspace/invites/create` | `--emails` (array/stdin), `--role`, `[--group-ids]` |
+| `invite-revoke` | POST `/workspace/invites/revoke` | `--invitation-id` |
+| `invite-resend` | POST `/workspace/invites/resend` | `--invitation-id` |
+| `invite-link` | POST `/workspace/invites/link` | — |
 
-### Comments (+5 commands)
+### Users (2 commands)
+
+| Command | Endpoint | Key params |
+|-|-|-|
+| `user-me` | POST `/users/me` | — |
+| `user-update` | POST `/users/update` | `--name` |
+
+### Spaces (10 commands)
+
+| Command | Endpoint | Key params |
+|-|-|-|
+| `space-list` | POST `/spaces/` | — |
+| `space-info` | POST `/spaces/info` | `--space-id` |
+| `space-create` | POST `/spaces/create` | `--name`, `[--slug]`, `[--description]` |
+| `space-update` | POST `/spaces/update` | `--space-id`, `[--name]`, `[--description]` |
+| `space-delete` | POST `/spaces/delete` | `--space-id` |
+| `space-export` | POST `/spaces/export` | `--space-id`, `--output`, `[--format]`, `[--include-attachments]` |
+| `space-member-list` | POST `/spaces/members` | `--space-id` |
+| `space-member-add` | POST `/spaces/members/add` | `--space-id`, `--role`, `[--user-ids]`, `[--group-ids]` |
+| `space-member-remove` | POST `/spaces/members/remove` | `--space-id`, (`--user-id` or `--group-id`) |
+| `space-member-role` | POST `/spaces/members/change-role` | `--space-id`, `--user-id`, `--role` |
+
+### Groups (8 commands)
+
+| Command | Endpoint | Key params |
+|-|-|-|
+| `group-list` | POST `/groups/` | — |
+| `group-info` | POST `/groups/info` | `--group-id` |
+| `group-create` | POST `/groups/create` | `--name`, `[--description]` |
+| `group-update` | POST `/groups/update` | `--group-id`, `[--name]`, `[--description]` |
+| `group-delete` | POST `/groups/delete` | `--group-id` |
+| `group-member-list` | POST `/groups/members` | `--group-id` |
+| `group-member-add` | POST `/groups/members/add` | `--group-id`, `--user-ids` (array/stdin) |
+| `group-member-remove` | POST `/groups/members/remove` | `--group-id`, `--user-id` |
+
+### Pages (17 commands)
+
+| Command | Endpoint | Key params |
+|-|-|-|
+| `page-list` | POST `/pages/recent` | `[--space-id]` |
+| `page-info` | POST `/pages/info` | `--page-id` |
+| `page-create` | POST `/pages/create` | `--space-id`, `[--title]`, `[--icon]`, `[--parent-page-id]` |
+| `page-update` | POST `/pages/update` + collab | `--page-id`, `[--title]`, `[--icon]`, `[--content]`, `[--file]` |
+| `page-delete` | POST `/pages/delete` | `--page-id`, `[--permanently-delete]` |
+| `page-delete-bulk` | POST `/pages/delete` (loop) | `--page-ids` (array/stdin) |
+| `page-move` | POST `/pages/move` | `--page-id`, `[--parent-page-id]`, `[--position]` (default: `a00000`) |
+| `page-move-to-space` | POST `/pages/move-to-space` | `--page-id`, `--space-id` |
+| `page-duplicate` | POST `/pages/duplicate` | `--page-id`, `[--space-id]` |
+| `page-breadcrumbs` | POST `/pages/breadcrumbs` | `--page-id` |
+| `page-tree` | POST `/pages/sidebar-pages` | `--space-id`, `--page-id` |
+| `page-export` | POST `/pages/export` | `--page-id`, `--format`, `[--output]`, `[--include-children]`, `[--include-attachments]` |
+| `page-import` | POST `/pages/import` | `--file`, `--space-id` |
+| `page-import-zip` | POST `/pages/import-zip` | `--file`, `--space-id` |
+| `page-history` | POST `/pages/history` | `--page-id`, `[--cursor]` |
+| `page-history-detail` | POST `/pages/history/info` | `--history-id` |
+| `page-restore` | POST `/pages/restore` | `--page-id` |
+| `page-trash` | POST `/pages/trash` | `--space-id` |
+
+Note on `page-update`: uses REST `/pages/update` for metadata (title, icon, parentPageId) and WebSocket collab for content changes. If only `--title`/`--icon` provided — REST only, no WebSocket.
+
+Note on `page-move`: `--position` defaults to `a00000` inside CLI. Agents don't need to provide it.
+
+### Comments (5 commands)
 
 | Command | Endpoint | Key params |
 |-|-|-|
 | `comment-list` | POST `/comments/` | `--page-id` |
 | `comment-info` | POST `/comments/info` | `--comment-id` |
-| `comment-create` | POST `/comments/create` | `--page-id`, `--content` |
-| `comment-update` | POST `/comments/update` | `--comment-id`, `--content` |
+| `comment-create` | POST `/comments/create` | `--page-id`, `--content` (markdown -> ProseMirror JSON), `[--selection]`, `[--parent-comment-id]` |
+| `comment-update` | POST `/comments/update` | `--comment-id`, `--content` (markdown -> ProseMirror JSON) |
 | `comment-delete` | POST `/comments/delete` | `--comment-id` |
 
-### Shares (+5 commands)
+Note: `--content` accepts markdown. CLI converts to ProseMirror JSON via the same tiptap pipeline used for page content.
+
+### Shares (6 commands)
 
 | Command | Endpoint | Key params |
 |-|-|-|
 | `share-list` | POST `/shares/` | — |
-| `share-info` | POST `/shares/for-page` | `--page-id` |
-| `share-create` | POST `/shares/create` | `--page-id` |
-| `share-update` | POST `/shares/update` | `--share-id`, `--password` |
+| `share-get` | POST `/shares/info` | `--share-id` |
+| `share-for-page` | POST `/shares/for-page` | `--page-id` |
+| `share-create` | POST `/shares/create` | `--page-id`, `[--include-subpages]`, `[--search-indexing]` |
+| `share-update` | POST `/shares/update` | `--share-id`, `[--include-subpages]`, `[--search-indexing]` |
 | `share-delete` | POST `/shares/delete` | `--share-id` |
 
-### Users (+2 commands)
-
-| Command | Endpoint | Key params |
-|-|-|-|
-| `whoami` | POST `/users/me` | — |
-| `user-update` | POST `/users/update` | `--name` |
-
-### Pages extras (+2 commands)
-
-| Command | Endpoint | Key params |
-|-|-|-|
-| `page-export` | POST `/pages/export` | `--page-id`, `--format` |
-| `page-import` | POST `/pages/import` | `--file`, `--space-id` |
-
-### Files (+2 commands)
+### Files (2 commands)
 
 | Command | Endpoint | Key params |
 |-|-|-|
 | `file-upload` | POST `/files/upload` | `--file`, `--page-id` |
-| `file-download` | GET `/files/:id/:name` | `--file-id`, `--output` |
+| `file-download` | GET `/files/:id/:name` | `--file-id`, `--output` (file path) |
+
+### Search (2 commands)
+
+| Command | Endpoint | Key params |
+|-|-|-|
+| `search` | POST `/search/` | `--query`, `[--space-id]` |
+| `search-suggest` | POST `/search/suggest` | `--query`, `[--space-id]` |
+
+## Totals
+
+**67 commands** across 11 groups.
+
+Renamed from existing 17:
+
+| Old name | New name |
+|-|-|
+| `workspace` | `workspace-info` |
+| `list-spaces` | `space-list` |
+| `list-groups` | `group-list` |
+| `list-pages` | `page-list` |
+| `get-page` | `page-info` |
+| `create-page` | `page-create` |
+| `update-page` | `page-update` |
+| `delete-page` | `page-delete` |
+| `delete-pages` | `page-delete-bulk` |
+| `move-page` | `page-move` |
+| `duplicate-page` | `page-duplicate` |
+| `breadcrumbs` | `page-breadcrumbs` |
+| `search` | `search` |
+| `page-history` | `page-history` |
+| `page-history-detail` | `page-history-detail` |
+| `restore-page` | `page-restore` |
+| `trash` | `page-trash` |
+
+## Global Options
+
+| Flag | Description |
+|-|-|
+| `--api-url` / `DOCMOST_API_URL` | Docmost instance URL |
+| `--token` / `DOCMOST_TOKEN` | API token |
+| `--email` / `DOCMOST_EMAIL` | Email for login |
+| `--password` / `DOCMOST_PASSWORD` | Password for login |
+| `--output` | `json` (default), `table`, `text` |
+| `--quiet` / `-q` | Suppress stdout, exit code only |
 
 ## Architecture
 
-### Client Layer (`src/client.ts`)
+### Client (`src/client.ts`)
 
-Add methods matching each new endpoint. Group by entity with JSDoc comments. All methods follow existing patterns:
+Add methods per entity. All follow existing pattern:
 - `ensureAuthenticated()` before each call
 - `paginateAll()` for list endpoints
 - Return filtered results via `src/lib/filters.ts`
 
 ### Filters (`src/lib/filters.ts`)
 
-Add filter functions for new entities: `filterComment`, `filterShare`, `filterInvite`, `filterMember`, `filterUser`.
+New filter functions: `filterComment`, `filterShare`, `filterInvite`, `filterMember`, `filterUser`.
 
-### Commands (`src/index.ts`)
+### Commands — split by entity
 
-Each command registered via Commander with:
-- Required options marked with `<value>`, optional with `[value]`
-- `withClient()` wrapper for auth
-- Output respects `--output` format flag
-- Errors mapped through `normalizeError` → `CliError`
+Move from monolithic `src/index.ts` into separate files:
+- `src/commands/workspace.ts`
+- `src/commands/space.ts`
+- `src/commands/group.ts`
+- `src/commands/page.ts`
+- `src/commands/comment.ts`
+- `src/commands/share.ts`
+- `src/commands/invite.ts`
+- `src/commands/user.ts`
+- `src/commands/file.ts`
+- `src/commands/search.ts`
 
-### Output consistency
+Each module exports `register(program: Command)` called from `src/index.ts`.
 
-All commands return:
-- **JSON** (default): `{ data: ..., success: true }` for single items, `{ items: [...] }` for lists
-- **Table**: formatted with `cli-table3` for list commands
-- **Text**: human-readable for content commands
+### Comment content handling
 
-## Summary
+Comments use ProseMirror JSON internally. CLI accepts markdown `--content` and converts:
+1. Markdown -> HTML (marked)
+2. HTML -> ProseMirror JSON (generateJSON + tiptapExtensions)
 
-- **40 new commands** across 8 entity groups
-- **57 total commands** after expansion
-- Backward compatible — all 17 existing commands unchanged
-- Agent-first: flat names, JSON output, no interactivity
+### Binary exports
+
+`space-export` and `page-export` write to path specified by `--output`. If omitted, write to stdout (for piping).
