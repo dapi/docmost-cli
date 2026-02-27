@@ -18,7 +18,11 @@ export async function getCollabToken(
 
     // console.error('Collab Token Response:', response.data);
     // Response is wrapped in { data: { token: ... } }
-    return response.data.data?.token || response.data.token;
+    const token = response.data.data?.token || response.data.token;
+    if (!token) {
+      throw new Error("Collab token not found in API response");
+    }
+    return token;
   } catch (error) {
     if (axios.isAxiosError(error)) {
       throw new Error(

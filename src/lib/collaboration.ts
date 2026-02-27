@@ -42,23 +42,16 @@ export async function updatePageContentRealtime(
   // Replace protocol
   let wsUrl = baseUrl.replace(/^http/, "ws");
 
-  try {
-    const urlObj = new URL(wsUrl);
-    // Remove /api suffix if present, as the websocket is mounted on root /collab
-    if (urlObj.pathname.endsWith("/api") || urlObj.pathname.endsWith("/api/")) {
-      urlObj.pathname = urlObj.pathname.replace(/\/api\/?$/, "");
-    }
-
-    // Set correct path to /collab
-    urlObj.pathname = urlObj.pathname.replace(/\/$/, "") + "/collab";
-
-    wsUrl = urlObj.toString();
-  } catch (e) {
-    // Fallback if URL parsing fails
-    if (!wsUrl.endsWith("/collab")) {
-      wsUrl = wsUrl.replace(/\/$/, "") + "/collab";
-    }
+  const urlObj = new URL(wsUrl);
+  // Remove /api suffix if present, as the websocket is mounted on root /collab
+  if (urlObj.pathname.endsWith("/api") || urlObj.pathname.endsWith("/api/")) {
+    urlObj.pathname = urlObj.pathname.replace(/\/api\/?$/, "");
   }
+
+  // Set correct path to /collab
+  urlObj.pathname = urlObj.pathname.replace(/\/$/, "") + "/collab";
+
+  wsUrl = urlObj.toString();
 
   console.error(`Connecting to WebSocket: ${wsUrl}`);
 
@@ -120,7 +113,10 @@ export async function updatePageContentRealtime(
             try {
               console.error(`Closing background connection for page ${pageId}`);
               provider.destroy();
-            } catch (err) {}
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : String(err);
+              console.error(`Warning: failed to close WebSocket: ${msg}`);
+            }
           }, 15000);
         } catch (e) {
           clearTimeout(timer);
