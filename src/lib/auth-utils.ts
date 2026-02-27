@@ -56,11 +56,11 @@ export async function performLogin(
 
     const token = authCookie.split(";")[0].split("=")[1];
     return token;
-  } catch (error: any) {
-    console.error(
-      "Login failed:",
-      axios.isAxiosError(error) ? error.response?.data : error.message,
-    );
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      throw new Error(`Login failed: ${status} ${error.response?.statusText}`);
+    }
     throw error;
   }
 }

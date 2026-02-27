@@ -89,7 +89,12 @@ export class DocmostClient {
 
       const data = response.data;
       const inner = data.data ?? data;
-      const items = inner.items ?? [];
+      const items = inner.items;
+      if (!Array.isArray(items)) {
+        throw new Error(
+          `Unexpected API response from ${endpoint}: missing items array`,
+        );
+      }
       const meta = inner.meta;
 
       allItems = allItems.concat(items);
@@ -182,7 +187,11 @@ export class DocmostClient {
     await this.ensureAuthenticated();
 
     if (parentPageId) {
-      await this.getPage(parentPageId);
+      try {
+        await this.getPage(parentPageId);
+      } catch {
+        throw new Error(`Parent page with ID '${parentPageId}' not found or not accessible.`);
+      }
     }
 
     const form = new FormData();
@@ -222,22 +231,16 @@ export class DocmostClient {
       await this.client.post("/pages/update", { pageId, title });
     }
 
-    if (!this.token) {
-      throw new Error("Authentication token is not available.");
-    }
-
     let collabToken = "";
     try {
-      collabToken = await getCollabToken(this.baseURL, this.token);
+      collabToken = await getCollabToken(this.baseURL, this.token!);
       await updatePageContentRealtime(pageId, content, collabToken, this.baseURL);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
         throw error;
       }
-      throw new Error(
-        `Failed to update page content: ${error.message}`,
-        { cause: error },
-      );
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to update page content: ${msg}`, { cause: error });
     }
 
     return {
@@ -297,11 +300,12 @@ export class DocmostClient {
       try {
         await this.client.post("/pages/delete", { pageId: id });
         results.push({ id, success: true });
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
           throw error;
         }
-        results.push({ id, success: false, error: error.message });
+        const msg = error instanceof Error ? error.message : String(error);
+        results.push({ id, success: false, error: msg });
       }
     }
     return results;

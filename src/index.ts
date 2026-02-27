@@ -296,8 +296,7 @@ function getSafeOutput(program: Command): OutputFormat {
   const opts = program.opts<GlobalOptions>();
   try {
     return normalizeOutputFormat(opts.output);
-  } catch (e) {
-    process.stderr.write(`Warning: invalid output format, defaulting to json\n`);
+  } catch {
     return "json";
   }
 }
@@ -543,15 +542,14 @@ function registerCommands(program: Command) {
         ensureOutputSupported(opts.output, { allowTable: true });
         const pageIds = parsePageIds(options.pageIds);
         const result = await client.deletePages(pageIds);
+        printResult(result, opts.output, { allowTable: true });
         const failed = result.filter((r) => !r.success);
         if (failed.length > 0) {
-          printResult(result, opts.output, { allowTable: true });
           throw new CliError(
             "INTERNAL_ERROR",
             `Failed to delete ${failed.length} of ${result.length} pages.`,
           );
         }
-        printResult(result, opts.output, { allowTable: true });
       }),
     );
 
