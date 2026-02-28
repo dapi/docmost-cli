@@ -71,6 +71,7 @@ export class DocmostClient {
     endpoint: string,
     basePayload: Record<string, unknown> = {},
     limit: number = 100,
+    maxItems: number = Infinity,
   ): Promise<T[]> {
     await this.ensureAuthenticated();
 
@@ -80,7 +81,7 @@ export class DocmostClient {
     let allItems: T[] = [];
     let hasNextPage = true;
 
-    while (hasNextPage) {
+    while (hasNextPage && allItems.length < maxItems) {
       const response = await this.client.post(endpoint, {
         ...basePayload,
         limit: clampedLimit,
@@ -102,7 +103,7 @@ export class DocmostClient {
       page++;
     }
 
-    return allItems;
+    return maxItems < Infinity ? allItems.slice(0, maxItems) : allItems;
   }
 
   async getWorkspace() {
