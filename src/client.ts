@@ -96,6 +96,9 @@ export class DocmostClient {
         );
       }
       const meta = inner.meta;
+      if (!meta && items.length === clampedLimit) {
+        process.stderr.write(`Warning: API response from ${endpoint} missing pagination meta; results may be incomplete.\n`);
+      }
 
       allItems = allItems.concat(items);
       hasNextPage = meta?.hasNextPage ?? false;
@@ -137,7 +140,11 @@ export class DocmostClient {
       pageId,
       page: 1,
     });
-    return response.data?.data?.items ?? [];
+    const items = response.data?.data?.items;
+    if (items !== undefined && !Array.isArray(items)) {
+      throw new Error(`Unexpected API response from /pages/sidebar-pages: items is not an array`);
+    }
+    return items ?? [];
   }
 
   async getPage(pageId: string) {
@@ -189,8 +196,14 @@ export class DocmostClient {
     if (parentPageId) {
       try {
         await this.getPage(parentPageId);
-      } catch {
-        throw new Error(`Parent page with ID '${parentPageId}' not found or not accessible.`);
+      } catch (error) {
+        if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
+          throw error;
+        }
+        if (axios.isAxiosError(error) && error.response?.status === 404) {
+          throw new Error(`Parent page with ID '${parentPageId}' not found.`);
+        }
+        throw error;
       }
     }
 
@@ -258,10 +271,11 @@ export class DocmostClient {
       spaceId,
     });
 
-    const items = response.data?.data?.items ?? [];
-    const filteredItems = Array.isArray(items)
-      ? items.map((item: any) => filterSearchResult(item))
-      : [];
+    const items = response.data?.data?.items;
+    if (items !== undefined && !Array.isArray(items)) {
+      throw new Error(`Unexpected API response from /search: items is not an array`);
+    }
+    const filteredItems = (items ?? []).map((item: any) => filterSearchResult(item));
 
     return {
       items: filteredItems,

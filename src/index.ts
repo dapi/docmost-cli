@@ -78,6 +78,10 @@ function resolveOptions(raw: GlobalOptions): ResolvedOptions {
     );
   }
 
+  if (raw.password) {
+    process.stderr.write("Warning: --password is visible in process lists. Use DOCMOST_PASSWORD env var instead.\n");
+  }
+
   if (!token && (!email || !password)) {
     throw new CliError(
       "VALIDATION_ERROR",
@@ -296,7 +300,8 @@ function getSafeOutput(program: Command): OutputFormat {
   const opts = program.opts<GlobalOptions>();
   try {
     return normalizeOutputFormat(opts.output);
-  } catch {
+  } catch (e) {
+    process.stderr.write(`Warning: invalid output format '${opts.output}', falling back to json.\n`);
     return "json";
   }
 }
@@ -542,14 +547,15 @@ function registerCommands(program: Command) {
         ensureOutputSupported(opts.output, { allowTable: true });
         const pageIds = parsePageIds(options.pageIds);
         const result = await client.deletePages(pageIds);
-        printResult(result, opts.output, { allowTable: true });
         const failed = result.filter((r) => !r.success);
         if (failed.length > 0) {
+          printResult(result, opts.output, { allowTable: true });
           throw new CliError(
             "INTERNAL_ERROR",
             `Failed to delete ${failed.length} of ${result.length} pages.`,
           );
         }
+        printResult(result, opts.output, { allowTable: true });
       }),
     );
 

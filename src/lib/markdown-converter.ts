@@ -2,6 +2,23 @@
  * Convert ProseMirror/TipTap JSON content to Markdown
  * Supports all Docmost-specific node types and extensions
  */
+function escapeHtmlAttr(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function sanitizeUrl(url: string): string {
+  const trimmed = url.trim();
+  if (/^javascript:/i.test(trimmed) || /^data:/i.test(trimmed) || /^vbscript:/i.test(trimmed)) {
+    return "";
+  }
+  return trimmed;
+}
+
 export function convertProseMirrorToMarkdown(content: any): string {
   if (!content || !content.content) return "";
 
@@ -17,7 +34,7 @@ export function convertProseMirrorToMarkdown(content: any): string {
         const text = nodeContent.map(processNode).join("");
         const align = node.attrs?.textAlign;
         if (align && align !== "left") {
-          return `<div align="${align}">${text}</div>`;
+          return `<div align="${escapeHtmlAttr(align)}">${text}</div>`;
         }
         return text || "";
 
@@ -42,7 +59,7 @@ export function convertProseMirrorToMarkdown(content: any): string {
                 textContent = `\`${textContent}\``;
                 break;
               case "link":
-                textContent = `[${textContent}](${mark.attrs?.href || ""})`;
+                textContent = `[${textContent}](${sanitizeUrl(mark.attrs?.href || "")})`;
                 break;
               case "strike":
                 textContent = `~~${textContent}~~`;
@@ -58,11 +75,11 @@ export function convertProseMirrorToMarkdown(content: any): string {
                 break;
               case "highlight":
                 const color = mark.attrs?.color || "yellow";
-                textContent = `<mark style="background-color: ${color}">${textContent}</mark>`;
+                textContent = `<mark style="background-color: ${escapeHtmlAttr(color)}">${textContent}</mark>`;
                 break;
               case "textStyle":
                 if (mark.attrs?.color) {
-                  textContent = `<span style="color: ${mark.attrs.color}">${textContent}</span>`;
+                  textContent = `<span style="color: ${escapeHtmlAttr(mark.attrs.color)}">${textContent}</span>`;
                 }
                 break;
             }
@@ -109,16 +126,16 @@ export function convertProseMirrorToMarkdown(content: any): string {
 
       case "image":
         const imgAlt = node.attrs?.alt || "";
-        const imgSrc = node.attrs?.src || "";
+        const imgSrc = sanitizeUrl(node.attrs?.src || "");
         const imgCaption = node.attrs?.caption || "";
         return `![${imgAlt}](${imgSrc})${imgCaption ? `\n*${imgCaption}*` : ""}`;
 
       case "video":
-        const videoSrc = node.attrs?.src || "";
+        const videoSrc = sanitizeUrl(node.attrs?.src || "");
         return `🎥 [Video](${videoSrc})`;
 
       case "youtube":
-        const youtubeUrl = node.attrs?.src || "";
+        const youtubeUrl = sanitizeUrl(node.attrs?.src || "");
         return `📺 [YouTube Video](${youtubeUrl})`;
 
       case "table":
@@ -161,7 +178,7 @@ export function convertProseMirrorToMarkdown(content: any): string {
 
       case "attachment":
         const attachmentName = node.attrs?.fileName || "attachment";
-        const attachmentUrl = node.attrs?.src || "";
+        const attachmentUrl = sanitizeUrl(node.attrs?.src || "");
         return `📎 [${attachmentName}](${attachmentUrl})`;
 
       case "drawio":
@@ -171,14 +188,14 @@ export function convertProseMirrorToMarkdown(content: any): string {
         return `✏️ [Excalidraw Drawing]`;
 
       case "embed":
-        const embedUrl = node.attrs?.src || "";
+        const embedUrl = sanitizeUrl(node.attrs?.src || "");
         return `🔗 [Embedded Content](${embedUrl})`;
 
       case "subpages":
         return "{{SUBPAGES}}";
 
       default:
-        // Fallback: process children
+        process.stderr.write(`Warning: unknown node type '${type}', rendering as plain text.\n`);
         return nodeContent.map(processNode).join("");
     }
   };

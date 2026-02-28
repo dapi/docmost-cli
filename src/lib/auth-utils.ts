@@ -55,6 +55,9 @@ export async function performLogin(
     }
 
     const token = authCookie.split(";")[0].split("=")[1];
+    if (!token) {
+      throw new Error("authToken cookie is empty in login response");
+    }
     return token;
   } catch (error: unknown) {
     if (axios.isAxiosError(error)) {
