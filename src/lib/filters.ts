@@ -86,6 +86,61 @@ export function filterHistoryEntry(entry: any) {
   };
 }
 
+export function filterMember(member: any) {
+  return {
+    id: member.id,
+    name: member.name,
+    email: member.email,
+    role: member.role,
+    createdAt: member.createdAt,
+  };
+}
+
+export function filterInvite(invite: any) {
+  return {
+    id: invite.id,
+    email: invite.email,
+    role: invite.role,
+    status: invite.status,
+    invitedById: invite.invitedById,
+    createdAt: invite.createdAt,
+  };
+}
+
+export function filterUser(user: any) {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    locale: user.locale,
+    createdAt: user.createdAt,
+  };
+}
+
+export function filterComment(comment: any) {
+  return {
+    id: comment.id,
+    pageId: comment.pageId,
+    content: comment.content,
+    selection: comment.selection,
+    parentCommentId: comment.parentCommentId,
+    creatorId: comment.creatorId,
+    createdAt: comment.createdAt,
+    updatedAt: comment.updatedAt,
+  };
+}
+
+export function filterShare(share: any) {
+  return {
+    id: share.id,
+    pageId: share.pageId,
+    includeSubPages: share.includeSubPages,
+    searchIndexing: share.searchIndexing,
+    createdAt: share.createdAt,
+  };
+}
+
 export function filterHistoryDetail(entry: any, content?: string) {
   return {
     ...filterHistoryEntry(entry),
