@@ -124,3 +124,19 @@ docmost restore-page --page-id <pageId> --output json
 ```bash
 docmost trash --space-id <spaceId> --output json
 ```
+
+## CRUD Workflow
+
+For tasks like "create a page", "update documentation", "organize pages":
+
+1. Discover spaces:
+   - `docmost list-spaces --output json`
+2. List existing pages in target space:
+   - `docmost list-pages --space-id <spaceId> --output json`
+3. Read existing page (if updating):
+   - `docmost get-page --page-id <pageId> --output text`
+4. Create or update:
+   - `docmost create-page --title "Title" --content @file.md --space-id <spaceId> --output json`
+   - `docmost update-page --page-id <pageId> --content @file.md --output json`
+5. Verify result:
+   - `docmost get-page --page-id <pageId> --output json`
