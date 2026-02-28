@@ -48,6 +48,7 @@
 //   printResult, ensureOutputSupported, isCommanderHelpExit, normalizeError,
 //   printError, getSafeOutput, readStdin, resolveContentInput, withClient
 // Rename: parsePageIds → parseCommaSeparatedIds(flagName: string, csv: string)
+// Keep parsePageIds as re-export alias until Task 2 removes it
 ```
 
 **Step 2:** Update types for new global options — but keep OLD `printResult` signature:
@@ -139,7 +140,7 @@ Update `ensureOutputSupported` similarly to take `opts.format`.
 | `duplicate-page` | `page-duplicate` | — |
 | `breadcrumbs` | `page-breadcrumbs` | — |
 | `search` | `search` | Change `.argument("<query>")` → `.requiredOption("--query <q>")`, add `[--creator-id]` |
-| `page-history` | `page-history` | Remove `--cursor`, switch to `paginateAll()` |
+| `page-history` | `page-history` | Keep cursor-based for now (migrated to paginateAll in Task 3b) |
 | `page-history-detail` | `page-history-detail` | — |
 | `restore-page` | `page-restore` | — |
 | `trash` | `page-trash` | — |
@@ -182,6 +183,27 @@ async paginateAll<T = unknown>(
 **Step 2:** `npm run build`
 
 **Step 3:** Commit: `feat: add maxItems support to paginateAll`
+
+---
+
+### Task 3b: Migrate page-history to paginateAll
+
+**Files:**
+- Modify: `src/client.ts` — replace cursor-based `getPageHistory` with `paginateAll`
+- Modify: `src/commands/page.ts` — remove `--cursor` option from `page-history`
+
+**Step 1:** Refactor `getPageHistory` in client.ts to use `paginateAll()`:
+
+```typescript
+async getPageHistory(pageId: string, limit?: number, maxItems?: number) {
+  const items = await this.paginateAll("/pages/history", { pageId }, limit, maxItems);
+  return items.map((entry: any) => filterHistoryEntry(entry));
+}
+```
+
+**Step 2:** Update `page-history` command in `src/commands/page.ts` — remove `--cursor`, pass `opts.limit` and `opts.maxItems`.
+
+**Step 3:** Build. Commit: `refactor: migrate page-history to paginateAll`
 
 ---
 
@@ -492,13 +514,12 @@ async importZip(filePath: string, spaceId: string, source: string) {
 
 Export: write to `--output` file or stdout.
 
-**Step 4:** Refactor `page-create`:
-- Remove import workaround from createPage client method
-- New `createPage` uses REST `POST /pages/create` with `{ spaceId, title?, icon?, parentPageId? }`
-- Returns created page metadata (no content)
-- Old behavior preserved via `page-import` command
+**Step 4:** Refactor `page-create` — **atomically** update both client and command:
+- In `src/client.ts`: replace `createPage(title, content, spaceId, parentPageId)` with `createPage(spaceId, title?, icon?, parentPageId?)` using REST `POST /pages/create`. Remove old import workaround.
+- In `src/commands/page.ts`: update `page-create` command to match new signature — remove `--content`/`--file` options, add `[--icon]`.
+- Old import behavior preserved via new `page-import` command (Step 3).
 
-**Step 5:** Build. Commit: `feat: add page extension commands + refactor page-create`
+**Step 5:** Build — verify both client and command are in sync. Commit: `feat: add page extension commands + refactor page-create`
 
 ---
 
@@ -608,14 +629,14 @@ async search(query: string, spaceId?: string, creatorId?: string) {
 
 | Phase | Tasks | What | Commands |
 |-|-|-|-|
-| 0: Infra | 1-3 | Extract cli-utils, rename 17 commands, paginateAll maxItems | 17 (renamed) |
+| 0: Infra | 1-3b | Extract cli-utils, rename 17 commands, paginateAll maxItems, page-history migration | 17 (renamed) |
 | 1: Admin | 4-9 | Workspace (3) + members (3) + invites (6) + users (2) + spaces (10) + groups (8) | +32 = 49 |
 | 2: Entities | 10-13 | Comments (5) + shares (6) + page ext (5) + files (2) + search (1) | +19 = 65* |
 | 3: Finalize | 14-15 | Help text, CLAUDE.md, version 2.0.0 | 65 |
 
 *Note: `search` moves from page.ts to search.ts (not new), `search-suggest` is +1 new. `workspace-info`, `space-list`, `group-list` move to their respective modules (not new). Net new commands: 48.
 
-Total: **15 tasks**, **65 commands**.
+Total: **16 tasks**, **65 commands**.
 
 Command module files (10):
 - `src/commands/workspace.ts` — workspace (3) + members (3) = 6
