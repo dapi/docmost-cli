@@ -508,6 +508,49 @@ export class DocmostClient {
     return response.data;
   }
 
+  async getGroupInfo(groupId: string) {
+    await this.ensureAuthenticated();
+    const response = await this.client.post("/groups/info", { groupId });
+    return filterGroup(response.data.data ?? response.data);
+  }
+
+  async createGroup(name: string, description?: string, userIds?: string[]) {
+    await this.ensureAuthenticated();
+    const response = await this.client.post("/groups/create", {
+      name, ...(description && { description }), ...(userIds && { userIds }),
+    });
+    return filterGroup(response.data.data ?? response.data);
+  }
+
+  async updateGroup(groupId: string, params: Record<string, unknown>) {
+    await this.ensureAuthenticated();
+    const response = await this.client.post("/groups/update", { groupId, ...params });
+    return response.data;
+  }
+
+  async deleteGroup(groupId: string) {
+    await this.ensureAuthenticated();
+    const response = await this.client.post("/groups/delete", { groupId });
+    return response.data;
+  }
+
+  async getGroupMembers(groupId: string) {
+    const members = await this.paginateAll("/groups/members", { groupId });
+    return members;
+  }
+
+  async addGroupMembers(groupId: string, userIds: string[]) {
+    await this.ensureAuthenticated();
+    const response = await this.client.post("/groups/members/add", { groupId, userIds });
+    return response.data;
+  }
+
+  async removeGroupMember(groupId: string, userId: string) {
+    await this.ensureAuthenticated();
+    const response = await this.client.post("/groups/members/remove", { groupId, userId });
+    return response.data;
+  }
+
   async getPageBreadcrumbs(pageId: string) {
     await this.ensureAuthenticated();
     const response = await this.client.post("/pages/breadcrumbs", { pageId });

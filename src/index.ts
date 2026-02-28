@@ -12,6 +12,7 @@ import { register as registerWorkspaceCommands } from "./commands/workspace.js";
 import { register as registerInviteCommands } from "./commands/invite.js";
 import { register as registerUserCommands } from "./commands/user.js";
 import { register as registerSpaceCommands } from "./commands/space.js";
+import { register as registerGroupCommands } from "./commands/group.js";
 
 const pkg = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf-8"),
@@ -59,6 +60,7 @@ async function main() {
   registerInviteCommands(program);
   registerUserCommands(program);
   registerSpaceCommands(program);
+  registerGroupCommands(program);
 
   try {
     await program.parseAsync(process.argv);

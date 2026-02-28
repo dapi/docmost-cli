@@ -11,17 +11,6 @@ import {
 
 export function register(program: Command) {
   program
-    .command("group-list")
-    .description("List all available groups")
-    .action(() =>
-      withClient(program, async (client, opts) => {
-        ensureOutputSupported(opts, { allowTable: true });
-        const result = await client.getGroups();
-        printResult(result, opts, { allowTable: true });
-      }),
-    );
-
-  program
     .command("page-list")
     .description("List pages")
     .option("-s, --space-id <id>", "Filter by space ID")
