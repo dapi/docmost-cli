@@ -86,3 +86,25 @@ docmost delete-pages --page-ids "id1,id2,id3" --output json
 Content input accepts three forms: literal string, `@path/to/file.md` (file), or `-` (stdin pipe).
 
 Note: `delete-page` supports `--permanent` for hard delete; `delete-pages` always soft-deletes to trash.
+
+### Page Organization
+
+```bash
+docmost move-page --page-id <pageId> --parent-page-id <targetParentId> --output json
+docmost move-page --page-id <pageId> --parent-page-id <targetParentId> --position <pos> --output json
+docmost move-page --page-id <pageId> --root --output json
+docmost duplicate-page --page-id <pageId> --output json
+docmost duplicate-page --page-id <pageId> --space-id <targetSpaceId> --output json
+docmost breadcrumbs --page-id <pageId> --output json
+```
+
+`--root` and `--parent-page-id` are mutually exclusive. `--position` is a 5-12 char string for ordering within the parent.
+
+### Search
+
+```bash
+docmost search "query text" --output json
+docmost search "query text" --space-id <spaceId> --output json
+```
+
+Note: query is a positional argument, not a flag.
