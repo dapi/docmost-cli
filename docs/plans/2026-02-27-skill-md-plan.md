@@ -23,10 +23,10 @@ Create `SKILL.md` with:
 ---
 name: docmost
 description: >
-  Use when user wants to manage documentation in Docmost — create/read/update/delete pages,
-  search content, organize spaces, view page history, manage trash.
+  Use when user wants to create/read/update/delete pages in Docmost via docmost CLI,
+  search documentation content, list/organize spaces, view page history, restore from trash.
   Trigger on requests about documentation pages, knowledge base, wiki, spaces, page content,
-  Docmost workspace.
+  Docmost workspace, page versions, page hierarchy.
 ---
 
 # docmost
@@ -34,6 +34,14 @@ description: >
 Docmost CLI skill for AI agents.
 
 ## Install
+
+Install this skill from GitHub:
+
+```bash
+npx skills add dapi/docmost-cli --skill docmost --agent '*' -g -y
+```
+
+Install CLI:
 
 ```bash
 npm install -g github:dapi/docmost-cli
@@ -71,12 +79,14 @@ After install section, add:
 ```markdown
 ## Execution Rules
 
+- If `docmost` is not found, install it: `npm install -g github:dapi/docmost-cli`.
 - Always add `--output json` for agent workflows.
 - Prefer env vars for credentials over CLI flags (`--password` is visible in process lists).
 - Auth precedence: `--token` > `DOCMOST_TOKEN` > `--email/--password` > `DOCMOST_EMAIL/DOCMOST_PASSWORD`.
 - For content input, prefer `--content @file.md` or `--content -` (stdin) over inline strings for multi-line content.
-- Use `--output text` only when the user explicitly wants raw markdown content (e.g. `get-page`, `page-history-detail`).
-- Use `--output table` for human-readable list displays when the user asks.
+- `--output text` supported only by: `get-page`, `page-history-detail`. Use when user wants raw markdown.
+- `--output table` supported by: `workspace`, `list-spaces`, `list-groups`, `list-pages`, `get-page`, `search`, `page-history`, `page-history-detail`, `trash`, `delete-pages`, `breadcrumbs`. Use for human-readable displays.
+- Commands not listed above support only `--output json`.
 ```
 
 **Step 2: Commit**
@@ -152,6 +162,8 @@ docmost delete-pages --page-ids "id1,id2,id3" --output json
 ```
 
 Content input accepts three forms: literal string, `@path/to/file.md` (file), or `-` (stdin pipe).
+
+Note: `delete-page` supports `--permanent` for hard delete; `delete-pages` always soft-deletes to trash.
 ```
 
 **Step 2: Commit**
@@ -175,11 +187,14 @@ git commit -m "feat(SKILL.md): add pages CRUD commands"
 
 ```bash
 docmost move-page --page-id <pageId> --parent-page-id <targetParentId> --output json
+docmost move-page --page-id <pageId> --parent-page-id <targetParentId> --position <pos> --output json
 docmost move-page --page-id <pageId> --root --output json
 docmost duplicate-page --page-id <pageId> --output json
 docmost duplicate-page --page-id <pageId> --space-id <targetSpaceId> --output json
 docmost breadcrumbs --page-id <pageId> --output json
 ```
+
+`--root` and `--parent-page-id` are mutually exclusive. `--position` is a 5-12 char string for ordering within the parent.
 
 ### Search
 
@@ -187,6 +202,8 @@ docmost breadcrumbs --page-id <pageId> --output json
 docmost search "query text" --output json
 docmost search "query text" --space-id <spaceId> --output json
 ```
+
+Note: query is a positional argument, not a flag.
 ```
 
 **Step 2: Commit**
@@ -287,6 +304,8 @@ git commit -m "feat(SKILL.md): add CRUD workflow"
 - "show page history"
 - "restore deleted page"
 - "find pages about deployment"
+- "what pages are in the Engineering space?"
+- "duplicate this page to another space"
 - "создай страницу в Docmost"
 - "обнови документацию"
 - "найди в вики страницу про API"
@@ -294,12 +313,15 @@ git commit -m "feat(SKILL.md): add CRUD workflow"
 - "удали черновик"
 - "перенеси страницу в другой раздел"
 - "покажи историю страницы"
+- "восстанови удалённую страницу"
 
 ### Should not trigger
 
-- General file editing unrelated to Docmost
-- Git operations
-- Non-documentation tasks
+- Editing local files (not Docmost pages)
+- Git operations, CI/CD pipelines
+- Sending messages (use Slack/Telegram skills)
+- Managing users or permissions (use Docmost web UI)
+- Editing page comments (not supported by CLI)
 ```
 
 **Step 2: Commit**
@@ -315,10 +337,11 @@ git commit -m "feat(SKILL.md): add trigger examples"
 
 **Step 1: Read the full SKILL.md and verify**
 
-- All 17 commands present
+- All 17 commands present: workspace, list-spaces, list-groups, list-pages, get-page, create-page, update-page, delete-page, delete-pages, move-page, duplicate-page, breadcrumbs, search, page-history, page-history-detail, restore-page, trash
 - Consistent formatting
-- No broken markdown
+- No broken markdown (especially nested code blocks)
 - Examples use `--output json` consistently
+- `--output text`/`--output table` support documented accurately per command
 
 **Step 2: Done**
 
