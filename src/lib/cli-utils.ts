@@ -15,7 +15,6 @@ export type GlobalOptions = {
   email?: string;
   password?: string;
   token?: string;
-  output?: string;
   format?: string;
   quiet?: boolean;
   limit?: string;
@@ -24,7 +23,6 @@ export type GlobalOptions = {
 
 export type ResolvedOptions = {
   apiUrl: string;
-  output: OutputFormat;
   format: OutputFormat;
   quiet: boolean;
   limit: number;
@@ -71,7 +69,8 @@ export function normalizeOutputFormat(value: string | undefined): OutputFormat {
   );
 }
 
-export function resolveOptions(raw: GlobalOptions): ResolvedOptions {
+export function resolveOptions(raw: GlobalOptions, options?: { requireAuth?: boolean }): ResolvedOptions {
+  const requireAuth = options?.requireAuth ?? true;
   const apiUrl = raw.apiUrl || process.env.DOCMOST_API_URL;
   const token = raw.token || process.env.DOCMOST_TOKEN;
   const email = raw.email || process.env.DOCMOST_EMAIL;
@@ -84,25 +83,38 @@ export function resolveOptions(raw: GlobalOptions): ResolvedOptions {
     );
   }
 
-  if (!token && (!email || !password)) {
+  if (requireAuth && !token && (!email || !password)) {
     throw new CliError(
       "VALIDATION_ERROR",
       "Authentication is required: provide --token (or DOCMOST_TOKEN) or both --email/--password (or DOCMOST_EMAIL/DOCMOST_PASSWORD).",
     );
   }
 
-  const outputFormat = normalizeOutputFormat(raw.format || raw.output);
-  const limit = Math.max(1, Math.min(100, parseInt(raw.limit || "100", 10)));
-  const maxItems = parseInt(raw.maxItems || "0", 10) || Infinity;
+  const outputFormat = normalizeOutputFormat(raw.format);
+
+  const parsedLimit = parseInt(raw.limit || "100", 10);
+  if (isNaN(parsedLimit)) {
+    throw new CliError("VALIDATION_ERROR", `Invalid --limit value '${raw.limit}'. Must be a number.`);
+  }
+  const limit = Math.max(1, Math.min(100, parsedLimit));
+
+  const parsedMaxItems = parseInt(raw.maxItems || "0", 10);
+  if (isNaN(parsedMaxItems)) {
+    throw new CliError("VALIDATION_ERROR", `Invalid --max-items value '${raw.maxItems}'. Must be a number.`);
+  }
+  const maxItems = parsedMaxItems > 0 ? parsedMaxItems : Infinity;
+
+  const auth: ClientAuthOptions = token
+    ? { token }
+    : (email && password ? { email, password } : {});
 
   return {
     apiUrl,
-    output: outputFormat,
     format: outputFormat,
     quiet: raw.quiet ?? false,
     limit,
     maxItems,
-    auth: token ? { token } : { email: email!, password: password! },
+    auth,
   };
 }
 
@@ -309,8 +321,10 @@ export function printError(error: CliError, output: OutputFormat) {
 export function getSafeOutput(program: Command): OutputFormat {
   const opts = program.opts<GlobalOptions>();
   try {
-    return normalizeOutputFormat(opts.format || opts.output);
-  } catch {
+    return normalizeOutputFormat(opts.format);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`Warning: ${msg} Falling back to json.`);
     return "json";
   }
 }
@@ -391,6 +405,15 @@ export async function withClient(
   run: (client: DocmostClient, opts: ResolvedOptions) => Promise<void>,
 ) {
   const opts = resolveOptions(program.opts<GlobalOptions>());
+  const client = new DocmostClient(opts.apiUrl, opts.auth);
+  await run(client, opts);
+}
+
+export async function withPublicClient(
+  program: Command,
+  run: (client: DocmostClient, opts: ResolvedOptions) => Promise<void>,
+) {
+  const opts = resolveOptions(program.opts<GlobalOptions>(), { requireAuth: false });
   const client = new DocmostClient(opts.apiUrl, opts.auth);
   await run(client, opts);
 }

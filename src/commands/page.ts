@@ -1,7 +1,6 @@
 import { writeFileSync } from "fs";
 import { Command, Option } from "commander";
 import {
-  type ResolvedOptions,
   CliError,
   ensureOutputSupported,
   printResult,
@@ -77,7 +76,7 @@ export function register(program: Command) {
     .action((options: { pageId: string; content?: string; title?: string; icon?: string }) =>
       withClient(program, async (client, opts) => {
         ensureOutputSupported(opts);
-        if (!options.content && !options.title && options.icon === undefined) {
+        if (options.content === undefined && options.title === undefined && options.icon === undefined) {
           throw new CliError("VALIDATION_ERROR", "Provide at least one of --content, --title, or --icon.");
         }
         const content = options.content ? await resolveContentInput(options.content) : undefined;
@@ -147,14 +146,15 @@ export function register(program: Command) {
         ensureOutputSupported(opts, { allowTable: true });
         const pageIds = parseCommaSeparatedIds("--page-ids", options.pageIds);
         const result = await client.deletePages(pageIds);
-        printResult(result, opts, { allowTable: true });
         const failed = result.filter((r) => !r.success);
         if (failed.length > 0) {
+          printResult(result, opts, { allowTable: true });
           throw new CliError(
             "INTERNAL_ERROR",
             `Failed to delete ${failed.length} of ${result.length} pages.`,
           );
         }
+        printResult(result, opts, { allowTable: true });
       }),
     );
 

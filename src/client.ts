@@ -1,4 +1,4 @@
-import { createReadStream } from "fs";
+import { createReadStream, accessSync, constants as fsConstants } from "fs";
 import FormData from "form-data";
 import axios, { AxiosInstance } from "axios";
 import {
@@ -22,9 +22,23 @@ import { marked } from "marked";
 import { generateJSON } from "@tiptap/html";
 import { tiptapExtensions } from "./lib/tiptap-extensions.js";
 
+function ensureFileReadable(filePath: string): void {
+  try {
+    accessSync(filePath, fsConstants.R_OK);
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code ?? "UNKNOWN";
+    throw new Error(`File not found or not readable: ${filePath} (${code})`, { cause: err });
+  }
+}
+
 function markdownToProseMirrorJson(markdown: string): object {
-  const html = marked.parse(markdown, { async: false }) as string;
-  return generateJSON(html, tiptapExtensions);
+  try {
+    const html = marked.parse(markdown, { async: false }) as string;
+    return generateJSON(html, tiptapExtensions);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`Failed to convert markdown to ProseMirror JSON: ${msg}`, { cause: err });
+  }
 }
 
 export type ClientAuthOptions = {
@@ -197,9 +211,9 @@ export class DocmostClient {
     await this.ensureAuthenticated();
     const response = await this.client.post("/pages/create", {
       spaceId,
-      ...(title && { title }),
-      ...(icon && { icon }),
-      ...(parentPageId && { parentPageId }),
+      ...(title !== undefined && { title }),
+      ...(icon !== undefined && { icon }),
+      ...(parentPageId !== undefined && { parentPageId }),
     });
     return response.data.data ?? response.data;
   }
@@ -211,7 +225,11 @@ export class DocmostClient {
     if (spaceId) payload.spaceId = spaceId;
     if (pageId) payload.pageId = pageId;
     const response = await this.client.post("/pages/sidebar-pages", { ...payload, page: 1 });
-    return response.data?.data?.items ?? [];
+    const items = response.data?.data?.items;
+    if (!Array.isArray(items)) {
+      throw new Error("Unexpected page tree response structure from API.");
+    }
+    return items;
   }
 
   async movePageToSpace(pageId: string, spaceId: string) {
@@ -232,6 +250,7 @@ export class DocmostClient {
 
   async importPage(filePath: string, spaceId: string) {
     await this.ensureAuthenticated();
+    ensureFileReadable(filePath);
     const form = new FormData();
     form.append("spaceId", spaceId);
     form.append("file", createReadStream(filePath));
@@ -243,6 +262,7 @@ export class DocmostClient {
 
   async importZip(filePath: string, spaceId: string, source: string) {
     await this.ensureAuthenticated();
+    ensureFileReadable(filePath);
     const form = new FormData();
     form.append("spaceId", spaceId);
     form.append("source", source);
@@ -263,7 +283,7 @@ export class DocmostClient {
       await this.client.post("/pages/update", metadata);
     }
 
-    if (content) {
+    if (content !== undefined) {
       let collabToken = "";
       try {
         collabToken = await getCollabToken(this.baseURL, this.token!);
@@ -289,8 +309,8 @@ export class DocmostClient {
     await this.ensureAuthenticated();
     const response = await this.client.post("/search", {
       query,
-      ...(spaceId && { spaceId }),
-      ...(creatorId && { creatorId }),
+      ...(spaceId !== undefined && { spaceId }),
+      ...(creatorId !== undefined && { creatorId }),
     });
 
     const items = response.data?.data?.items ?? [];
@@ -394,7 +414,7 @@ export class DocmostClient {
   async createSpace(name: string, slug?: string, description?: string) {
     await this.ensureAuthenticated();
     const response = await this.client.post("/spaces/create", {
-      name, ...(slug && { slug }), ...(description && { description }),
+      name, ...(slug !== undefined && { slug }), ...(description !== undefined && { description }),
     });
     return filterSpace(response.data.data ?? response.data);
   }
@@ -415,7 +435,7 @@ export class DocmostClient {
     await this.ensureAuthenticated();
     const response = await this.client.post("/spaces/export", {
       spaceId,
-      ...(exportFormat && { format: exportFormat }),
+      ...(exportFormat !== undefined && { format: exportFormat }),
       ...(includeAttachments !== undefined && { includeAttachments }),
     }, { responseType: "arraybuffer" });
     return response.data;
@@ -544,7 +564,7 @@ export class DocmostClient {
   async createGroup(name: string, description?: string, userIds?: string[]) {
     await this.ensureAuthenticated();
     const response = await this.client.post("/groups/create", {
-      name, ...(description && { description }), ...(userIds && { userIds }),
+      name, ...(description !== undefined && { description }), ...(userIds !== undefined && { userIds }),
     });
     return filterGroup(response.data.data ?? response.data);
   }
@@ -609,8 +629,8 @@ export class DocmostClient {
     const response = await this.client.post("/comments/create", {
       pageId,
       content: JSON.stringify(prosemirrorJson),
-      ...(selection && { selection }),
-      ...(parentCommentId && { parentCommentId }),
+      ...(selection !== undefined && { selection }),
+      ...(parentCommentId !== undefined && { parentCommentId }),
     });
     return response.data;
   }
@@ -680,6 +700,7 @@ export class DocmostClient {
 
   async uploadFile(filePath: string, pageId: string, attachmentId?: string) {
     await this.ensureAuthenticated();
+    ensureFileReadable(filePath);
     const form = new FormData();
     form.append("file", createReadStream(filePath));
     form.append("pageId", pageId);
@@ -692,7 +713,8 @@ export class DocmostClient {
 
   async downloadFile(fileId: string, fileName: string) {
     await this.ensureAuthenticated();
-    const response = await this.client.get(`/files/${fileId}/${fileName}`, {
+    const sanitizedName = fileName.replace(/[/\\]/g, "_").replace(/\.\./g, "_");
+    const response = await this.client.get(`/files/${fileId}/${encodeURIComponent(sanitizedName)}`, {
       responseType: "arraybuffer",
     });
     return response.data;
@@ -705,7 +727,7 @@ export class DocmostClient {
   }) {
     await this.ensureAuthenticated();
     const response = await this.client.post("/search/suggest", {
-      query, ...(spaceId && { spaceId }), ...options,
+      query, ...(spaceId !== undefined && { spaceId }), ...options,
     });
     return response.data;
   }

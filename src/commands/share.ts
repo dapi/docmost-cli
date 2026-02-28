@@ -1,4 +1,4 @@
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import {
   ensureOutputSupported,
   printResult,
@@ -45,12 +45,14 @@ export function register(program: Command) {
     .command("share-create")
     .description("Create a share for a page")
     .requiredOption("--page-id <id>", "Page ID")
-    .option("--include-subpages", "Include subpages")
-    .option("--search-indexing", "Allow search indexing")
-    .action((options: { pageId: string; includeSubpages?: boolean; searchIndexing?: boolean }) =>
+    .addOption(new Option("--include-subpages <bool>", "Include subpages").choices(["true", "false"]))
+    .addOption(new Option("--search-indexing <bool>", "Allow search indexing").choices(["true", "false"]))
+    .action((options: { pageId: string; includeSubpages?: string; searchIndexing?: string }) =>
       withClient(program, async (client, opts) => {
         ensureOutputSupported(opts);
-        const result = await client.createShare(options.pageId, options.includeSubpages, options.searchIndexing);
+        const includeSubPages = options.includeSubpages !== undefined ? options.includeSubpages === "true" : undefined;
+        const searchIndexing = options.searchIndexing !== undefined ? options.searchIndexing === "true" : undefined;
+        const result = await client.createShare(options.pageId, includeSubPages, searchIndexing);
         printResult(result, opts);
       }),
     );
@@ -59,12 +61,14 @@ export function register(program: Command) {
     .command("share-update")
     .description("Update a share")
     .requiredOption("--share-id <id>", "Share ID")
-    .option("--include-subpages", "Include subpages")
-    .option("--search-indexing", "Allow search indexing")
-    .action((options: { shareId: string; includeSubpages?: boolean; searchIndexing?: boolean }) =>
+    .addOption(new Option("--include-subpages <bool>", "Include subpages").choices(["true", "false"]))
+    .addOption(new Option("--search-indexing <bool>", "Allow search indexing").choices(["true", "false"]))
+    .action((options: { shareId: string; includeSubpages?: string; searchIndexing?: string }) =>
       withClient(program, async (client, opts) => {
         ensureOutputSupported(opts);
-        const result = await client.updateShare(options.shareId, options.includeSubpages, options.searchIndexing);
+        const includeSubPages = options.includeSubpages !== undefined ? options.includeSubpages === "true" : undefined;
+        const searchIndexing = options.searchIndexing !== undefined ? options.searchIndexing === "true" : undefined;
+        const result = await client.updateShare(options.shareId, includeSubPages, searchIndexing);
         printResult(result, opts);
       }),
     );

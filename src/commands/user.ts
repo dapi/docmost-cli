@@ -24,7 +24,7 @@ export function register(program: Command) {
     .option("--name <name>", "User display name")
     .option("--email <email>", "User email")
     .option("--avatar-url <url>", "Avatar URL")
-    .option("--full-page-width", "Enable full page width")
+    .addOption(new Option("--full-page-width <bool>", "Enable full page width").choices(["true", "false"]))
     .addOption(
       new Option("--page-edit-mode <mode>", "Default page edit mode")
         .choices(["read", "edit"]),
@@ -35,7 +35,7 @@ export function register(program: Command) {
         name?: string;
         email?: string;
         avatarUrl?: string;
-        fullPageWidth?: boolean;
+        fullPageWidth?: string;
         pageEditMode?: string;
         locale?: string;
       }) =>
@@ -45,7 +45,7 @@ export function register(program: Command) {
             ...(options.name !== undefined && { name: options.name }),
             ...(options.email !== undefined && { email: options.email }),
             ...(options.avatarUrl !== undefined && { avatarUrl: options.avatarUrl }),
-            ...(options.fullPageWidth !== undefined && { fullPageWidth: options.fullPageWidth }),
+            ...(options.fullPageWidth !== undefined && { fullPageWidth: options.fullPageWidth === "true" }),
             ...(options.pageEditMode !== undefined && { pageEditMode: options.pageEditMode }),
             ...(options.locale !== undefined && { locale: options.locale }),
           };

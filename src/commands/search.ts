@@ -28,7 +28,7 @@ export function register(program: Command) {
     .option("--include-users", "Include users in results")
     .option("--include-groups", "Include groups in results")
     .option("--include-pages", "Include pages in results")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--max-results <n>", "Max results", parseInt)
     .action(
       (options: {
         query: string;
@@ -36,7 +36,7 @@ export function register(program: Command) {
         includeUsers?: boolean;
         includeGroups?: boolean;
         includePages?: boolean;
-        limit?: number;
+        maxResults?: number;
       }) =>
         withClient(program, async (client, opts) => {
           ensureOutputSupported(opts, { allowTable: true });
@@ -44,7 +44,7 @@ export function register(program: Command) {
             includeUsers: options.includeUsers,
             includeGroups: options.includeGroups,
             includePages: options.includePages,
-            limit: options.limit,
+            limit: options.maxResults,
           });
           printResult(result, opts, { allowTable: true });
         }),
