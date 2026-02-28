@@ -6,7 +6,7 @@ import {
   ensureOutputSupported,
   printResult,
   resolveContentInput,
-  parsePageIds,
+  parseCommaSeparatedIds,
   withClient,
 } from "../lib/cli-utils.js";
 
@@ -69,15 +69,18 @@ export function register(program: Command) {
 
   program
     .command("page-update")
-    .description("Update page content and optional title")
+    .description("Update page metadata and/or content")
     .requiredOption("--page-id <id>", "Page ID")
-    .requiredOption("--content <content>", "Content literal, @file, or - for stdin")
+    .option("--content <content>", "Content literal, @file, or - for stdin")
     .option("--title <title>", "New page title")
     .option("--icon <icon>", "Page icon")
-    .action((options: { pageId: string; content: string; title?: string; icon?: string }) =>
+    .action((options: { pageId: string; content?: string; title?: string; icon?: string }) =>
       withClient(program, async (client, opts) => {
         ensureOutputSupported(opts);
-        const content = await resolveContentInput(options.content);
+        if (!options.content && !options.title && options.icon === undefined) {
+          throw new CliError("VALIDATION_ERROR", "Provide at least one of --content, --title, or --icon.");
+        }
+        const content = options.content ? await resolveContentInput(options.content) : undefined;
         const result = await client.updatePage(options.pageId, content, options.title, options.icon);
         printResult(result, opts);
       }),
@@ -142,7 +145,7 @@ export function register(program: Command) {
     .action((options: { pageIds: string }) =>
       withClient(program, async (client, opts) => {
         ensureOutputSupported(opts, { allowTable: true });
-        const pageIds = parsePageIds(options.pageIds);
+        const pageIds = parseCommaSeparatedIds("--page-ids", options.pageIds);
         const result = await client.deletePages(pageIds);
         printResult(result, opts, { allowTable: true });
         const failed = result.filter((r) => !r.success);

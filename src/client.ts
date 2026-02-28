@@ -253,7 +253,7 @@ export class DocmostClient {
     return response.data;
   }
 
-  async updatePage(pageId: string, content: string, title?: string, icon?: string) {
+  async updatePage(pageId: string, content?: string, title?: string, icon?: string) {
     await this.ensureAuthenticated();
 
     const metadata: Record<string, string> = { pageId };
@@ -263,16 +263,18 @@ export class DocmostClient {
       await this.client.post("/pages/update", metadata);
     }
 
-    let collabToken = "";
-    try {
-      collabToken = await getCollabToken(this.baseURL, this.token!);
-      await updatePageContentRealtime(pageId, content, collabToken, this.baseURL);
-    } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        throw error;
+    if (content) {
+      let collabToken = "";
+      try {
+        collabToken = await getCollabToken(this.baseURL, this.token!);
+        await updatePageContentRealtime(pageId, content, collabToken, this.baseURL);
+      } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+          throw error;
+        }
+        const msg = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to update page content: ${msg}`, { cause: error });
       }
-      const msg = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to update page content: ${msg}`, { cause: error });
     }
 
     return {
