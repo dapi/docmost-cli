@@ -355,6 +355,17 @@ export class DocmostClient {
     return filterPage(newPage);
   }
 
+  async getWorkspacePublic() {
+    const response = await this.client.post("/workspace/public", {});
+    return response.data;
+  }
+
+  async updateWorkspace(params: Record<string, unknown>) {
+    await this.ensureAuthenticated();
+    const response = await this.client.post("/workspace/update", params);
+    return response.data;
+  }
+
   async getPageBreadcrumbs(pageId: string) {
     await this.ensureAuthenticated();
     const response = await this.client.post("/pages/breadcrumbs", { pageId });

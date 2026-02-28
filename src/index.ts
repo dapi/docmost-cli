@@ -8,6 +8,7 @@ import {
   printError,
 } from "./lib/cli-utils.js";
 import { register as registerPageCommands } from "./commands/page.js";
+import { register as registerWorkspaceCommands } from "./commands/workspace.js";
 
 const pkg = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf-8"),
@@ -51,6 +52,7 @@ async function main() {
   (program.options.find((o: any) => o.long === "--output") as any).hidden = true;
 
   registerPageCommands(program);
+  registerWorkspaceCommands(program);
 
   try {
     await program.parseAsync(process.argv);

@@ -86,6 +86,16 @@ export function filterHistoryEntry(entry: any) {
   };
 }
 
+export function filterMember(member: any) {
+  return {
+    id: member.id,
+    name: member.name,
+    email: member.email,
+    role: member.role,
+    createdAt: member.createdAt,
+  };
+}
+
 export function filterHistoryDetail(entry: any, content?: string) {
   return {
     ...filterHistoryEntry(entry),

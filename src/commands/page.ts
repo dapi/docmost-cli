@@ -11,17 +11,6 @@ import {
 
 export function register(program: Command) {
   program
-    .command("workspace-info")
-    .description("Get the current Docmost workspace")
-    .action(() =>
-      withClient(program, async (client, opts) => {
-        ensureOutputSupported(opts, { allowTable: true });
-        const result = await client.getWorkspace();
-        printResult(result, opts, { allowTable: true });
-      }),
-    );
-
-  program
     .command("space-list")
     .description("List all available spaces")
     .action(() =>
