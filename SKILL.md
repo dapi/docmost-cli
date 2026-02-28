@@ -65,3 +65,24 @@ docmost list-spaces --output json
 ```bash
 docmost list-groups --output json
 ```
+
+### Pages
+
+```bash
+docmost list-pages --output json
+docmost list-pages --space-id <spaceId> --output json
+docmost get-page --page-id <pageId> --output json
+docmost get-page --page-id <pageId> --output text
+docmost create-page --title "Page Title" --content @content.md --space-id <spaceId> --output json
+docmost create-page --title "Sub Page" --content "# Hello" --space-id <spaceId> --parent-page-id <parentId> --output json
+echo "# Content from stdin" | docmost create-page --title "From Pipe" --content - --space-id <spaceId> --output json
+docmost update-page --page-id <pageId> --content @updated.md --output json
+docmost update-page --page-id <pageId> --content @updated.md --title "New Title" --output json
+docmost delete-page --page-id <pageId> --output json
+docmost delete-page --page-id <pageId> --permanent --output json
+docmost delete-pages --page-ids "id1,id2,id3" --output json
+```
+
+Content input accepts three forms: literal string, `@path/to/file.md` (file), or `-` (stdin pipe).
+
+Note: `delete-page` supports `--permanent` for hard delete; `delete-pages` always soft-deletes to trash.
