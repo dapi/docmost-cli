@@ -11,10 +11,19 @@ import {
   filterMember,
   filterInvite,
   filterUser,
+  filterComment,
 } from "./lib/filters.js";
 import { convertProseMirrorToMarkdown } from "./lib/markdown-converter.js";
 import { updatePageContentRealtime } from "./lib/collaboration.js";
 import { getCollabToken, performLogin } from "./lib/auth-utils.js";
+import { marked } from "marked";
+import { generateJSON } from "@tiptap/html";
+import { tiptapExtensions } from "./lib/tiptap-extensions.js";
+
+function markdownToProseMirrorJson(markdown: string): object {
+  const html = marked.parse(markdown, { async: false }) as string;
+  return generateJSON(html, tiptapExtensions);
+}
 
 export type ClientAuthOptions = {
   email?: string;
@@ -561,5 +570,46 @@ export class DocmostClient {
           title: breadcrumb.title,
         }))
       : items;
+  }
+
+  // Comment methods
+
+  async getComments(pageId: string) {
+    const comments = await this.paginateAll("/comments", { pageId });
+    return comments.map((c: any) => filterComment(c));
+  }
+
+  async getCommentInfo(commentId: string) {
+    await this.ensureAuthenticated();
+    const response = await this.client.post("/comments/info", { commentId });
+    return filterComment(response.data.data ?? response.data);
+  }
+
+  async createComment(pageId: string, content: string, selection?: string, parentCommentId?: string) {
+    await this.ensureAuthenticated();
+    const prosemirrorJson = markdownToProseMirrorJson(content);
+    const response = await this.client.post("/comments/create", {
+      pageId,
+      content: JSON.stringify(prosemirrorJson),
+      ...(selection && { selection }),
+      ...(parentCommentId && { parentCommentId }),
+    });
+    return response.data;
+  }
+
+  async updateComment(commentId: string, content: string) {
+    await this.ensureAuthenticated();
+    const prosemirrorJson = markdownToProseMirrorJson(content);
+    const response = await this.client.post("/comments/update", {
+      commentId,
+      content: JSON.stringify(prosemirrorJson),
+    });
+    return response.data;
+  }
+
+  async deleteComment(commentId: string) {
+    await this.ensureAuthenticated();
+    const response = await this.client.post("/comments/delete", { commentId });
+    return response.data;
   }
 }

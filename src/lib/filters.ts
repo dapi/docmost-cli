@@ -118,6 +118,19 @@ export function filterUser(user: any) {
   };
 }
 
+export function filterComment(comment: any) {
+  return {
+    id: comment.id,
+    pageId: comment.pageId,
+    content: comment.content,
+    selection: comment.selection,
+    parentCommentId: comment.parentCommentId,
+    creatorId: comment.creatorId,
+    createdAt: comment.createdAt,
+    updatedAt: comment.updatedAt,
+  };
+}
+
 export function filterHistoryDetail(entry: any, content?: string) {
   return {
     ...filterHistoryEntry(entry),
