@@ -30,26 +30,17 @@ A Model Context Protocol (MCP) server for [Docmost](https://docmost.com/), enabl
 
 ## Installation
 
-### From GitHub
+### From npm (recommended)
 
 ```bash
-npm install github:dapi/docmost-mcp
-```
-
-### Run directly with npx
-
-```bash
-DOCMOST_API_URL=http://localhost:3000/api \
-DOCMOST_EMAIL=test@docmost.com \
-DOCMOST_PASSWORD=test \
-npx github:dapi/docmost-mcp
+npm install -g @dapi/docmost-cli
 ```
 
 ### From source
 
 ```bash
-git clone https://github.com/dapi/docmost-mcp.git
-cd docmost-mcp
+git clone https://github.com/dapi/docmost-cli.git
+cd docmost-cli
 npm install
 npm run build
 ```
