@@ -17,6 +17,7 @@ import { register as registerCommentCommands } from "./commands/comment.js";
 import { register as registerShareCommands } from "./commands/share.js";
 import { register as registerFileCommands } from "./commands/file.js";
 import { register as registerSearchCommands } from "./commands/search.js";
+import { register as registerDiscoveryCommands } from "./commands/discovery.js";
 
 const pkg = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf-8"),
@@ -66,6 +67,7 @@ async function main() {
   registerShareCommands(program);
   registerFileCommands(program);
   registerSearchCommands(program);
+  registerDiscoveryCommands(program);
 
   try {
     await program.parseAsync(process.argv);
