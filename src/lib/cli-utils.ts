@@ -8,6 +8,7 @@ export type OutputFormat = "json" | "table" | "text";
 export type PrintOptions = {
   allowTable?: boolean;
   textExtractor?: (result: unknown) => string | undefined;
+  hasMore?: boolean;
 };
 
 export type GlobalOptions = {
@@ -19,6 +20,17 @@ export type GlobalOptions = {
   quiet?: boolean;
   limit?: string;
   maxItems?: string;
+};
+
+export type SuccessEnvelope<T = unknown> = {
+  ok: true;
+  data: T;
+  meta?: { count: number; hasMore: boolean };
+};
+
+export type ErrorEnvelope = {
+  ok: false;
+  error: { code: CliErrorCode; message: string; details?: unknown };
 };
 
 export type ResolvedOptions = {
@@ -182,7 +194,17 @@ export function printResult(
   if (opts.quiet) return;
   const output = opts.format;
   if (output === "json") {
-    console.log(JSON.stringify(data, null, 2));
+    if (Array.isArray(data)) {
+      const envelope: SuccessEnvelope = {
+        ok: true,
+        data,
+        meta: { count: data.length, hasMore: options.hasMore ?? false },
+      };
+      console.log(JSON.stringify(envelope, null, 2));
+    } else {
+      const envelope: SuccessEnvelope = { ok: true, data };
+      console.log(JSON.stringify(envelope, null, 2));
+    }
     return;
   }
 
@@ -296,20 +318,16 @@ export function normalizeError(error: unknown): CliError {
 }
 
 export function printError(error: CliError, output: OutputFormat) {
+  const envelope: ErrorEnvelope = {
+    ok: false,
+    error: {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+    },
+  };
   if (output === "json") {
-    console.error(
-      JSON.stringify(
-        {
-          error: {
-            code: error.code,
-            message: error.message,
-            details: error.details,
-          },
-        },
-        null,
-        2,
-      ),
-    );
+    console.error(JSON.stringify(envelope, null, 2));
   } else {
     console.error(`Error [${error.code}]: ${error.message}`);
     if (error.details) {
