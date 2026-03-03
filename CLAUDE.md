@@ -46,6 +46,7 @@ npm run start      # Run compiled CLI
 | `src/commands/share.ts` | Share commands: info, enable, disable, set-password, remove-password, set-search-indexing |
 | `src/commands/file.ts` | File commands: upload, info, list |
 | `src/commands/search.ts` | Search command |
+| `src/commands/discovery.ts` | Discovery: lists all commands with options for agent introspection |
 | `lib/collaboration.ts` | WebSocket updates via HocuspocusProvider/Yjs - preserves page ID during edits |
 | `lib/markdown-converter.ts` | ProseMirror->Markdown conversion (read path) |
 | `lib/auth-utils.ts` | Login (cookie extraction) + collab token fetch |
@@ -55,9 +56,11 @@ npm run start      # Run compiled CLI
 **Error Handling**:
 - `CliError` class with typed codes: AUTH_ERROR(2), NOT_FOUND(3), VALIDATION_ERROR(4), NETWORK_ERROR(5), INTERNAL_ERROR(1)
 - `normalizeError` maps CommanderError/AxiosError -> CliError
-- Output: JSON `{ error: { code, message, details } }` or plain text
+- Output: JSON envelope `{ ok: false, error: { code, message, details } }` or plain text
 
-**Output Formats**: `json` (default), `table` (list commands), `text` (content commands)
+**Output Formats**: `json` (default, envelope `{ ok, data/error }`), `table` (list commands), `text` (content commands)
+
+**JSON Envelope**: All `--format json` responses wrapped in `{ ok: true, data }` (success) or `{ ok: false, error }` (error). Lists include `meta: { count, hasMore }`.
 
 **Content Update Flow** (`page-update`):
 1. Markdown -> HTML (marked)
@@ -72,6 +75,6 @@ Required: `DOCMOST_API_URL` + (`DOCMOST_TOKEN` or `DOCMOST_EMAIL`/`DOCMOST_PASSW
 ## Notes
 
 - `page-create` uses import API workaround (multipart/form-data) since Docmost lacks direct content creation endpoint
-- Pagination via `paginateAll<T>()` handles both `data.items` and `data.data.items` response structures
+- Pagination via `paginateAll<T>()` returns `{ items, hasMore }`, handles both `data.items` and `data.data.items` API response structures
 - WebSocket connection kept open 15s after update for Docmost's 10s save debounce
 - Auth precedence: token > email/password, CLI args > env vars

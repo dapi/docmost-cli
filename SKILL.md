@@ -45,6 +45,7 @@ docmost workspace-public --format json
 ## Execution Rules
 
 - If `docmost` is not found, install it: `npm install -g github:dapi/docmost-cli`.
+- All `--format json` output wrapped in envelope: `{ "ok": true, "data": ... }` for success, `{ "ok": false, "error": ... }` for errors.
 - Prefer `--format json` for agent workflows.
 - Use `--format table` when user explicitly wants human-readable tabular output.
 - `--format text` is supported only by:
@@ -62,7 +63,40 @@ docmost workspace-public --format json
   - `page-export`, `space-export`, `file-download`
 - Use `--quiet` when only exit status matters.
 
+## Output Format
+
+All `--format json` responses use a predictable envelope:
+
+### Success (single object)
+```json
+{ "ok": true, "data": { "id": "abc", "title": "Runbook" } }
+```
+
+### Success (list)
+```json
+{ "ok": true, "data": [{ "id": "abc" }], "meta": { "count": 2, "hasMore": false } }
+```
+
+### Error (stderr)
+```json
+{ "ok": false, "error": { "code": "NOT_FOUND", "message": "Page not found", "details": null } }
+```
+
+### Parsing rules for agents
+- Always check `ok` field first
+- For lists: items in `data` array, check `meta.hasMore` for pagination
+- For mutations: created/updated object returned in `data`
+- Errors include typed `code`: AUTH_ERROR, NOT_FOUND, VALIDATION_ERROR, NETWORK_ERROR, INTERNAL_ERROR
+- Exit codes: 0=success, 1=internal, 2=auth, 3=not_found, 4=validation, 5=network
+- Use `docmost commands` to discover all available commands and their options
+
 ## Core Command Patterns
+
+### Discovery
+
+```bash
+docmost commands                          # list all commands with options as JSON
+```
 
 ### Workspace + Members
 
@@ -238,16 +272,16 @@ docmost file-download --file-id <fileId> --file-name report.pdf > ./report.pdf
 For requests like "create/update/move/delete doc page":
 
 1. Resolve workspace and target space:
-   - `docmost workspace-info --format json`
-   - `docmost space-list --format json`
+   - `docmost workspace-info --format json` → check `.ok`, use `.data`
+   - `docmost space-list --format json` → iterate `.data[]`, check `.meta.hasMore`
 2. Inspect existing pages:
-   - `docmost page-list --space-id <spaceId> --format json`
+   - `docmost page-list --space-id <spaceId> --format json` → iterate `.data[]`
 3. Read source page when modifying:
    - `docmost page-info --page-id <pageId> --format text`
 4. Apply mutation:
-   - `page-create` / `page-update` / `page-move` / `page-delete`
+   - `page-create` / `page-update` / `page-move` / `page-delete` → check `.ok`, get `.data.id`
 5. Verify:
-   - `docmost page-info --page-id <pageId> --format json`
+   - `docmost page-info --page-id <pageId> --format json` → check `.ok`
 
 ### Search + History Investigation
 
