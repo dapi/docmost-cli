@@ -1,3 +1,5 @@
+[![CI](https://github.com/dapi/docmost-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/dapi/docmost-cli/actions/workflows/ci.yml)
+
 # Docmost MCP Server
 
 A Model Context Protocol (MCP) server for [Docmost](https://docmost.com/), enabling AI agents to search, create, modify, and organize documentation pages and spaces.
