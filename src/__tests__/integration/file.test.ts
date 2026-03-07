@@ -13,7 +13,7 @@ describe("file commands", () => {
 
   beforeAll(async () => {
     const spaceResult = await runCli(
-      ["space-create", "--name", `file-test-space-${Date.now()}`],
+      ["space-create", "--name", `filespace${Date.now()}`, "--slug", `fs${Date.now()}`],
       env,
     );
     spaceId = parseEnvelope(spaceResult).data.id;

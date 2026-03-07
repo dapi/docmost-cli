@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-URL="${DOCMOST_TEST_URL:-http://localhost:4010}"
+URL="${DOCMOST_BASE_URL:-http://localhost:4010}"
 MAX_WAIT=120
 WAITED=0
 

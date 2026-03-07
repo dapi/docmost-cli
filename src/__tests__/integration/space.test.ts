@@ -5,11 +5,12 @@ const env = testEnv();
 
 describe("space commands", () => {
   let spaceId: string;
-  const spaceName = `test-space-${Date.now()}`;
+  const spaceName = `testspace${Date.now()}`;
+  const spaceSlug = `ts${Date.now()}`;
 
   it("space-create creates a space", async () => {
     const result = await runCli(
-      ["space-create", "--name", spaceName],
+      ["space-create", "--name", spaceName, "--slug", spaceSlug],
       env,
     );
     expect(result.exitCode).toBe(0);
@@ -48,7 +49,7 @@ describe("space commands", () => {
 
   it("space-update changes name", async () => {
     expect(spaceId).toBeDefined();
-    const newName = `${spaceName}-updated`;
+    const newName = `${spaceName}upd`;
     const result = await runCli(
       ["space-update", "--space-id", spaceId, "--name", newName],
       env,
@@ -57,7 +58,9 @@ describe("space commands", () => {
 
     const envelope = parseEnvelope(result);
     expect(envelope.ok).toBe(true);
-    expect(envelope.data.name).toBe(newName);
+    // updateSpace returns raw response.data; actual space may be nested in .data
+    const space = envelope.data.data ?? envelope.data;
+    expect(space.name).toBe(newName);
   });
 
   it("space-info on non-existent ID returns error", async () => {

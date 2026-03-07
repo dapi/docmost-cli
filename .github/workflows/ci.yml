@@ -37,7 +37,7 @@ jobs:
       - name: Wait for Docmost
         run: ./scripts/wait-for-docmost.sh
         env:
-          DOCMOST_TEST_URL: http://localhost:4010
+          DOCMOST_BASE_URL: http://localhost:4010
 
       - run: npm ci
       - run: npm run build
@@ -45,7 +45,7 @@ jobs:
       - name: Run integration tests
         run: npm run test:integration
         env:
-          DOCMOST_TEST_URL: http://localhost:4010
+          DOCMOST_TEST_URL: http://localhost:4010/api
           DOCMOST_TEST_EMAIL: test@example.com
           DOCMOST_TEST_PASSWORD: TestPassword123!
 

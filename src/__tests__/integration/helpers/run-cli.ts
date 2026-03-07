@@ -143,7 +143,7 @@ export function parseEnvelope(result: CliResult) {
 
 /** Get test server URL from env */
 export function testUrl(): string {
-  return process.env.DOCMOST_TEST_URL || "http://localhost:4010";
+  return process.env.DOCMOST_TEST_URL || "http://localhost:4010/api";
 }
 
 /** Must match TOKEN_FILE in global-setup.ts (duplicated to avoid ESM import issues) */

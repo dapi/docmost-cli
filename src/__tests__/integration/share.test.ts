@@ -10,7 +10,7 @@ describe("share commands", () => {
 
   beforeAll(async () => {
     const spaceResult = await runCli(
-      ["space-create", "--name", `share-test-space-${Date.now()}`],
+      ["space-create", "--name", `sharespace${Date.now()}`, "--slug", `ss${Date.now()}`],
       env,
     );
     spaceId = parseEnvelope(spaceResult).data.id;

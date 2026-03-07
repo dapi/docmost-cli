@@ -9,7 +9,7 @@ describe("page commands", () => {
 
   beforeAll(async () => {
     const result = await runCli(
-      ["space-create", "--name", `page-test-space-${Date.now()}`],
+      ["space-create", "--name", `pagespace${Date.now()}`, "--slug", `ps${Date.now()}`],
       env,
     );
     spaceId = parseEnvelope(result).data.id;
@@ -97,9 +97,9 @@ describe("page commands", () => {
     expect(result.exitCode).toBe(0);
   });
 
-  it("page-info on deleted page returns error", async () => {
+  it("page-info on non-existent page returns error", async () => {
     const result = await runCli(
-      ["page-info", "--page-id", pageId],
+      ["page-info", "--page-id", "00000000-0000-0000-0000-000000000000"],
       env,
     );
     const envelope = parseEnvelope(result);

@@ -10,7 +10,7 @@ describe("comment commands", () => {
 
   beforeAll(async () => {
     const spaceResult = await runCli(
-      ["space-create", "--name", `comment-test-space-${Date.now()}`],
+      ["space-create", "--name", `commentspace${Date.now()}`, "--slug", `cs${Date.now()}`],
       env,
     );
     spaceId = parseEnvelope(spaceResult).data.id;
@@ -31,8 +31,10 @@ describe("comment commands", () => {
 
     const envelope = parseEnvelope(result);
     expect(envelope.ok).toBe(true);
-    expect(envelope.data).toHaveProperty("id");
-    commentId = envelope.data.id;
+    // createComment returns raw response.data; actual comment may be nested in .data
+    const comment = envelope.data.data ?? envelope.data;
+    expect(comment).toHaveProperty("id");
+    commentId = comment.id;
   });
 
   it("comment-list returns comments for page", async () => {

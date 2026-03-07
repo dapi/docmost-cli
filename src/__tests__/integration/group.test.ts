@@ -5,7 +5,7 @@ const env = testEnv();
 
 describe("group commands", () => {
   let groupId: string;
-  const groupName = `test-group-${Date.now()}`;
+  const groupName = `testgroup${Date.now()}`;
 
   it("group-create creates a group", async () => {
     const result = await runCli(

@@ -8,7 +8,7 @@ describe("search commands", () => {
 
   beforeAll(async () => {
     const result = await runCli(
-      ["space-create", "--name", `search-test-space-${Date.now()}`],
+      ["space-create", "--name", `searchspace${Date.now()}`, "--slug", `src${Date.now()}`],
       env,
     );
     spaceId = parseEnvelope(result).data.id;

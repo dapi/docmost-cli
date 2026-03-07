@@ -22,7 +22,9 @@ describe("workspace commands", () => {
 
     const envelope = parseEnvelope(result);
     expect(envelope.ok).toBe(true);
-    expect(envelope.data).toHaveProperty("name");
+    // workspace-public wraps response as { data: { name, ... }, success: true }
+    const wsData = envelope.data.data ?? envelope.data;
+    expect(wsData).toHaveProperty("name");
   });
 
   it("member-list returns array", async () => {
