@@ -7,19 +7,48 @@ on:
     branches: [main]
 
 jobs:
-  build-and-test:
+  unit-tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         node-version: [20, 22]
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
-
       - run: npm ci
       - run: npm run build
       - run: npm test
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Start Docmost services
+        run: docker compose -f docker-compose.test.yml up -d
+
+      - name: Wait for Docmost
+        run: ./scripts/wait-for-docmost.sh
+        env:
+          DOCMOST_TEST_URL: http://localhost:4010
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Run integration tests
+        run: npm run test:integration
+        env:
+          DOCMOST_TEST_URL: http://localhost:4010
+          DOCMOST_TEST_EMAIL: test@example.com
+          DOCMOST_TEST_PASSWORD: TestPassword123!
+
+      - name: Stop services
+        if: always()
+        run: docker compose -f docker-compose.test.yml down -v
