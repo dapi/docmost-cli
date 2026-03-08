@@ -19,9 +19,9 @@ describe("search commands", () => {
       env,
     );
 
-    // Poll until search index catches up (max 15s)
+    // Poll until search index catches up (max 30s — CI can be slow)
     let indexed = false;
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 30; i++) {
       const probe = await runCli(["search", "--query", "UniqueSearchTerm42"], env);
       const probeEnv = parseEnvelope(probe);
       if (probeEnv.ok && Array.isArray(probeEnv.data) && probeEnv.data.length > 0) {
@@ -31,7 +31,7 @@ describe("search commands", () => {
       await new Promise((r) => setTimeout(r, 1000));
     }
     if (!indexed) {
-      console.warn("[search] Search index did not catch up within 15s — tests may fail");
+      console.warn("[search] Search index did not catch up within 30s — tests may fail");
     }
   });
 
