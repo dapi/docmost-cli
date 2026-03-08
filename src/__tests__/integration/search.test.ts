@@ -20,11 +20,18 @@ describe("search commands", () => {
     );
 
     // Poll until search index catches up (max 15s)
+    let indexed = false;
     for (let i = 0; i < 15; i++) {
       const probe = await runCli(["search", "--query", "UniqueSearchTerm42"], env);
       const probeEnv = parseEnvelope(probe);
-      if (probeEnv.ok && Array.isArray(probeEnv.data) && probeEnv.data.length > 0) break;
+      if (probeEnv.ok && Array.isArray(probeEnv.data) && probeEnv.data.length > 0) {
+        indexed = true;
+        break;
+      }
       await new Promise((r) => setTimeout(r, 1000));
+    }
+    if (!indexed) {
+      console.warn("[search] Search index did not catch up within 15s — tests may fail");
     }
   });
 

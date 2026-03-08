@@ -26,7 +26,9 @@ export async function setup() {
   } catch (err) {
     throw new Error(
       `Cannot reach Docmost at ${ROOT_URL}. Is docker-compose running?\n` +
-        `Run: docker compose -f docker-compose.test.yml up -d`,
+        `Run: docker compose -f docker-compose.test.yml up -d\n` +
+        `Original error: ${err instanceof Error ? err.message : String(err)}`,
+      { cause: err },
     );
   }
 
@@ -42,17 +44,26 @@ export async function setup() {
   } catch (err: unknown) {
     const status = axios.isAxiosError(err) ? err.response?.status : null;
     if (status === 400 || status === 403) {
-      console.log("[global-setup] Workspace already exists, skipping setup");
+      const msg = axios.isAxiosError(err) ? err.response?.data?.message : "";
+      console.log(`[global-setup] Setup skipped (${status}): ${msg || "workspace likely already exists"}`);
     } else {
       throw err;
     }
   }
 
   // Login to get token — Docmost returns token in Set-Cookie header, not body
-  const loginResp = await axios.post(`${ROOT_URL}/api/auth/login`, {
-    email: EMAIL,
-    password: PASSWORD,
-  });
+  let loginResp;
+  try {
+    loginResp = await axios.post(`${ROOT_URL}/api/auth/login`, {
+      email: EMAIL,
+      password: PASSWORD,
+    });
+  } catch (err) {
+    throw new Error(
+      `Login failed for ${EMAIL} at ${ROOT_URL}: ${err instanceof Error ? err.message : err}`,
+      { cause: err },
+    );
+  }
 
   const cookies = loginResp.headers["set-cookie"];
   const authCookie = cookies?.find((c: string) => c.startsWith("authToken="));
@@ -70,5 +81,11 @@ export async function setup() {
 }
 
 export async function teardown() {
-  try { rmSync(TOKEN_FILE); } catch {}
+  try {
+    rmSync(TOKEN_FILE);
+  } catch (err: any) {
+    if (err?.code !== "ENOENT") {
+      console.warn("[global-setup] Failed to remove token file:", err.message);
+    }
+  }
 }

@@ -1,7 +1,7 @@
 # docker-compose.test.yml
 services:
   docmost:
-    image: docmost/docmost:latest
+    image: docmost/docmost:0.8
     depends_on:
       postgres:
         condition: service_healthy

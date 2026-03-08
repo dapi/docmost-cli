@@ -8,7 +8,6 @@ import {
   isCommanderHelpExit,
 } from "../../../lib/cli-utils.js";
 
-// Import all register functions
 import { register as registerPageCommands } from "../../../commands/page.js";
 import { register as registerWorkspaceCommands } from "../../../commands/workspace.js";
 import { register as registerInviteCommands } from "../../../commands/invite.js";
@@ -27,13 +26,13 @@ export type CliResult = {
   exitCode: number;
 };
 
-function buildProgram(): Command {
+function buildProgram(stdout: string[], stderr: string[]): Command {
   const program = new Command()
     .name("docmost")
     .exitOverride()
     .configureOutput({
-      writeOut: () => {},
-      writeErr: () => {},
+      writeOut: (str) => stdout.push(str),
+      writeErr: (str) => stderr.push(str),
     });
 
   // Global options matching src/index.ts
@@ -64,6 +63,8 @@ function buildProgram(): Command {
 
 /**
  * Run a CLI command programmatically and capture output.
+ * NOTE: Mutates process.env and monkey-patches console/stdout — not concurrency-safe.
+ * Requires vitest config: fileParallelism: false, sequence.concurrent: false.
  *
  * @param args - CLI arguments (e.g., ["page-list", "--space-id", "abc"])
  * @param env  - Extra env vars for this invocation
@@ -104,13 +105,13 @@ export async function runCli(
   let exitCode = 0;
 
   try {
-    const program = buildProgram();
+    const program = buildProgram(stdout, stderr);
     await program.parseAsync(["node", "docmost", ...args]);
   } catch (error: unknown) {
     if (isCommanderHelpExit(error)) {
       exitCode = 0;
     } else {
-      // Mirror src/index.ts error handling: normalize + print envelope
+      // Simplified error handling (always JSON — tests use default format)
       const normalized = normalizeError(error);
       printError(normalized, "json");
       exitCode = normalized.exitCode;
@@ -135,10 +136,23 @@ export async function runCli(
   };
 }
 
-/** Parse JSON envelope from stdout (success) or stderr (error) */
+/** Parse JSON envelope from CLI output (tries stdout first, then stderr) */
 export function parseEnvelope(result: CliResult) {
   const source = result.stdout.trim() || result.stderr.trim();
-  return JSON.parse(source);
+  if (!source) {
+    throw new Error(
+      `Empty CLI output (exitCode=${result.exitCode}). ` +
+      `stdout=${JSON.stringify(result.stdout)}, stderr=${JSON.stringify(result.stderr)}`
+    );
+  }
+  try {
+    return JSON.parse(source);
+  } catch (err) {
+    throw new Error(
+      `Failed to parse CLI output as JSON (exitCode=${result.exitCode}): ${source.slice(0, 500)}`,
+      { cause: err },
+    );
+  }
 }
 
 /** Get test server URL from env */
@@ -153,8 +167,18 @@ const TOKEN_FILE = join(tmpdir(), "docmost-test-token");
 function readTestToken(): string {
   try {
     return readFileSync(TOKEN_FILE, "utf-8").trim();
-  } catch {
-    return process.env.DOCMOST_TEST_TOKEN || "";
+  } catch (err: any) {
+    if (err?.code !== "ENOENT") {
+      throw new Error(`Failed to read test token from ${TOKEN_FILE}: ${err.message}`);
+    }
+    const envToken = process.env.DOCMOST_TEST_TOKEN;
+    if (!envToken) {
+      throw new Error(
+        "No test token available. Global setup may have failed. " +
+        `Check that global-setup.ts ran successfully or set DOCMOST_TEST_TOKEN.`
+      );
+    }
+    return envToken;
   }
 }
 
