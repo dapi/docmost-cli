@@ -42,6 +42,11 @@ Quick check:
 docmost workspace-public --format json
 ```
 
+## Command Naming: entity-action (NOT action-entity)
+
+All commands use `entity-action` format: `page-update`, `space-create`, `comment-delete`.
+NEVER use `update-page`, `create-space`, `delete-comment` — these commands do not exist and will fail.
+
 ## Execution Rules
 
 - No pre-flight checks. Run the needed command directly. If `docmost` is not found, install it (`npm install -g github:dapi/docmost-cli`) and retry.
